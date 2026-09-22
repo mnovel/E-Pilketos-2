@@ -13,6 +13,8 @@ use App\Models\ElectionSession;
 use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class FullPilketosSeeder extends Seeder
 {
@@ -104,7 +106,34 @@ class FullPilketosSeeder extends Seeder
         $this->command->newLine();
 
         // ==========================================
-        // 3. ELECTION SESSIONS
+        // 3. VOTERS — 2 per kelas
+        // ==========================================
+        $this->command->info('👥 Generate voters (2 per kelas)...');
+
+        $classes = ClassRoom::active()
+            ->orderBy('tingkat')
+            ->orderBy('name')
+            ->get();
+
+        if ($classes->isEmpty()) {
+            $this->command->error('❌ Belum ada kelas aktif. Jalankan ClassRoomSeeder dulu.');
+            return;
+        }
+
+        $totalVoters = 0;
+
+        foreach ($classes as $class) {
+            $created = $this->createVotersForClass($class, 2);
+            $totalVoters += $created;
+
+            $this->command->line("  ✅ {$class->name}: {$created} voter");
+        }
+
+        $this->command->info("   Total: {$totalVoters} voter baru");
+        $this->command->newLine();
+
+        // ==========================================
+        // 4. ELECTION SESSIONS
         // ==========================================
         // Sesi @2 menit, staggered dalam range election
         //
@@ -118,28 +147,28 @@ class FullPilketosSeeder extends Seeder
 
         $sessionsData = [
             [
-                'kelas'         => 'X-IPA-1',
-                'mulai_offset'  => 5,     // +5 menit
-                'selesai_offset' => 7,     // +7 menit
+                'kelas'          => 'X-IPA-1',
+                'mulai_offset'   => 5,
+                'selesai_offset' => 10,
             ],
             [
-                'kelas'         => 'X-IPA-2',
-                'mulai_offset'  => 5,     // paralel dengan X-IPA-1
-                'selesai_offset' => 7,
+                'kelas'          => 'X-IPA-2',
+                'mulai_offset'   => 5,     // paralel dengan X-IPA-1
+                'selesai_offset' => 10,
             ],
             [
-                'kelas'         => 'X-IPA-3',
-                'mulai_offset'  => 10,
-                'selesai_offset' => 12,
+                'kelas'          => 'X-IPA-3',
+                'mulai_offset'   => 10,
+                'selesai_offset' => 15,
             ],
             [
-                'kelas'         => 'X-IPS-1',
-                'mulai_offset'  => 15,
-                'selesai_offset' => 17,
+                'kelas'          => 'X-IPS-1',
+                'mulai_offset'   => 15,
+                'selesai_offset' => 20,
             ],
             [
-                'kelas'         => 'XI-IPA-1',
-                'mulai_offset'  => 20,
+                'kelas'          => 'XI-IPA-1',
+                'mulai_offset'   => 20,
                 'selesai_offset' => 22,
             ],
         ];
@@ -168,6 +197,7 @@ class FullPilketosSeeder extends Seeder
                     'status'        => SessionStatus::SCHEDULED,   // ← auto-activate nanti
                     'operator_id'   => $admin->id,
                     'activated_at'  => null,
+                    'closed_at'     => null,
                 ]
             );
 
@@ -181,7 +211,7 @@ class FullPilketosSeeder extends Seeder
         $this->command->newLine();
 
         // ==========================================
-        // 4. TIMELINE PREVIEW
+        // 5. TIMELINE PREVIEW
         // ==========================================
         $this->command->info('⏰ TIMELINE (relative ke sekarang):');
         $this->command->newLine();
@@ -195,7 +225,33 @@ class FullPilketosSeeder extends Seeder
         $this->command->newLine();
 
         // ==========================================
-        // 5. SUMMARY
+        // 6. VOTER CREDENTIALS
+        // ==========================================
+        $this->command->info('🔑 VOTER CREDENTIALS (password: "password"):');
+        $this->command->newLine();
+
+        $voters = User::where('role', UserRole::VOTER)
+            ->where('class_id', $classes->pluck('id'))
+            ->orderBy('class_id')
+            ->orderBy('nis')
+            ->get();
+
+        $rows = $voters->map(fn($v) => [
+            $v->nis,
+            $v->name,
+            $v->email,
+            optional($v->classRoom)->name ?? '-',
+            $v->status->value ?? '-',
+        ])->toArray();
+
+        $this->command->table(
+            ['NIS', 'Nama', 'Email', 'Kelas', 'Status'],
+            $rows
+        );
+        $this->command->newLine();
+
+        // ==========================================
+        // 7. SUMMARY
         // ==========================================
         $this->command->info('📊 SUMMARY:');
         $this->command->table(
@@ -222,6 +278,55 @@ class FullPilketosSeeder extends Seeder
         $this->command->line('<fg=red>⚠️  WAJIB: jalankan scheduler paralel!</fg=red>');
         $this->command->line('   php artisan schedule:work');
         $this->command->newLine();
+    }
+
+    // ==========================================
+    // PRIVATE HELPERS
+    // ==========================================
+
+    /**
+     * Buat N voter untuk satu kelas.
+     * Password default: "password"
+     */
+    private function createVotersForClass(ClassRoom $class, int $count = 2): int
+    {
+        $created = 0;
+
+        for ($i = 1; $i <= $count; $i++) {
+            // NIS unik: 9 + class_id (2 digit) + index (3 digit)
+            $nis = '9' . str_pad((string) $class->id, 2, '0', STR_PAD_LEFT) . str_pad((string) $i, 3, '0', STR_PAD_LEFT);
+
+            // Skip kalau NIS sudah ada
+            if (User::where('nis', $nis)->exists()) {
+                continue;
+            }
+
+            // Email unik
+            $email = "siswa{$nis}@pilketos.test";
+
+            $user = User::create([
+                'nis'      => $nis,
+                'name'     => "Siswa {$class->name} #{$i}",
+                'class_id' => $class->id,
+                'email'    => $email,
+                'password' => Hash::make('password'),
+                'role'     => UserRole::VOTER,
+                'status'   => VoterStatus::VERIFIED,   // ← langsung verified biar auto-assign
+            ]);
+
+            // Assign role Spatie
+            try {
+                if (!$user->hasRole('voter')) {
+                    $user->assignRole('voter');
+                }
+            } catch (\Throwable $e) {
+                // skip kalau role belum di-seed
+            }
+
+            $created++;
+        }
+
+        return $created;
     }
 
     /**
