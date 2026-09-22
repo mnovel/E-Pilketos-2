@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,9 +16,16 @@ class ActivityLogController extends Controller
     {
         $query = ActivityLog::with('user')->latest('created_at');
 
-        // Filter user
-        if ($userId = $request->input('user_id')) {
-            $query->where('user_id', $userId);
+        // ✅ Filter Role
+        if ($role = $request->input('role')) {
+            if ($role === 'system') {
+                // System = user_id null
+                $query->whereNull('user_id');
+            } else {
+                $query->whereHas('user', function ($q) use ($role) {
+                    $q->where('role', $role);
+                });
+            }
         }
 
         // Filter action
@@ -36,7 +41,7 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $dateTo);
         }
 
-        // Search (meta / subject)
+        // Search (action / user name / email)
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('action', 'like', "%{$search}%")
@@ -65,16 +70,7 @@ class ActivityLogController extends Controller
             'unique_user' => ActivityLog::distinct('user_id')->count('user_id'),
         ];
 
-        // Filter options
-        $userIds = ActivityLog::whereNotNull('user_id')
-            ->distinct()
-            ->pluck('user_id');
-
-        $users = User::whereIn('id', $userIds)
-            ->orderBy('role')
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'role']);
-
+        // Action list
         $actions = ActivityLog::select('action')
             ->distinct()
             ->orderBy('action')
@@ -83,7 +79,6 @@ class ActivityLogController extends Controller
         return view('admin.activity-logs.index', compact(
             'logs',
             'stats',
-            'users',
             'actions',
             'perPage'
         ));

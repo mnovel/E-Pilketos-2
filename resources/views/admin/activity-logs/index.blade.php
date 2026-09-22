@@ -81,48 +81,77 @@
             {{-- Search --}}
             <form method="GET" class="table-search-box" onsubmit="return false;">
                 <i class="bi bi-search table-search-icon"></i>
-                <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+                <input type="hidden" name="role" value="{{ request('role') }}">
                 <input type="hidden" name="action" value="{{ request('action') }}">
                 <input type="hidden" name="date_from" value="{{ request('date_from') }}">
                 <input type="hidden" name="date_to" value="{{ request('date_to') }}">
                 <input type="hidden" name="per_page" value="{{ $perPage }}">
-                <input type="text" name="search" id="searchInput" class="table-search-input" placeholder="Cari user atau action..." value="{{ request('search') }}" autocomplete="off">
+                <input type="text" name="search" id="searchInput" class="table-search-input" placeholder="Cari user, email, atau action..." value="{{ request('search') }}" autocomplete="off">
             </form>
 
             {{-- Filters --}}
             <div class="table-filter-group">
 
-                {{-- Filter User --}}
+                {{-- ✅ Filter Role --}}
                 <div class="dropdown">
                     <button class="btn-table-action dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-person"></i>
                         @php
-                            $selectedUser = $users->firstWhere('id', request('user_id'));
+                            $roleMeta = [
+                                'admin' => ['label' => 'Administrator', 'icon' => 'bi-shield-check', 'color' => 'primary'],
+                                'operator' => ['label' => 'Operator', 'icon' => 'bi-person-badge', 'color' => 'info'],
+                                'voter' => ['label' => 'Pemilih', 'icon' => 'bi-person', 'color' => 'success'],
+                                'system' => ['label' => 'System', 'icon' => 'bi-gear', 'color' => 'secondary'],
+                            ];
+                            $currentRole = $roleMeta[request('role')] ?? null;
                         @endphp
-                        @if ($selectedUser)
-                            {{ $selectedUser->name }}
+
+                        @if ($currentRole)
+                            <i class="bi {{ $currentRole['icon'] }} text-{{ $currentRole['color'] }}"></i>
+                            {{ $currentRole['label'] }}
                         @else
-                            Semua User
+                            <i class="bi bi-person-badge"></i>
+                            Semua Role
                         @endif
                     </button>
                     <ul class="dropdown-menu">
                         <li>
-                            <a class="dropdown-item {{ !request('user_id') ? 'active' : '' }}" href="{{ route('admin.activity-logs.index', request()->except('user_id', 'page')) }}">
-                                Semua User
+                            <a class="dropdown-item {{ !request('role') ? 'active' : '' }}" href="{{ route('admin.activity-logs.index', request()->except('role', 'page')) }}">
+                                <i class="bi bi-people"></i> Semua Role
                             </a>
                         </li>
                         <li>
                             <hr class="dropdown-divider">
                         </li>
-                        @foreach ($users as $user)
-                            <li>
-                                <a class="dropdown-item {{ request('user_id') == $user->id ? 'active' : '' }}"
-                                    href="{{ route('admin.activity-logs.index', array_merge(request()->except('page'), ['user_id' => $user->id])) }}">
-                                    {{ $user->name }}
-                                    <small class="text-muted">({{ $user->role->value }})</small>
-                                </a>
-                            </li>
-                        @endforeach
+                        <li>
+                            <a class="dropdown-item {{ request('role') === 'admin' ? 'active' : '' }}"
+                                href="{{ route('admin.activity-logs.index', array_merge(request()->except('page'), ['role' => 'admin'])) }}">
+                                <i class="bi bi-shield-check text-primary"></i> Administrator
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {{ request('role') === 'operator' ? 'active' : '' }}"
+                                href="{{ route('admin.activity-logs.index', array_merge(request()->except('page'), ['role' => 'operator'])) }}">
+                                <i class="bi bi-person-badge text-info"></i> Operator
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {{ request('role') === 'voter' ? 'active' : '' }}"
+                                href="{{ route('admin.activity-logs.index', array_merge(request()->except('page'), ['role' => 'voter'])) }}">
+                                <i class="bi bi-person text-success"></i> Pemilih
+                            </a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <a class="dropdown-item {{ request('role') === 'system' ? 'active' : '' }}"
+                                href="{{ route('admin.activity-logs.index', array_merge(request()->except('page'), ['role' => 'system'])) }}">
+                                <i class="bi bi-gear text-secondary"></i> System
+                                <small class="text-muted d-block ms-4" style="font-size: 0.7rem;">
+                                    aksi otomatis & vote anonim
+                                </small>
+                            </a>
+                        </li>
                     </ul>
                 </div>
 
@@ -157,7 +186,7 @@
                 </div>
 
                 {{-- Reset --}}
-                @if (request()->anyFilled(['user_id', 'action', 'date_from', 'date_to', 'search']))
+                @if (request()->anyFilled(['role', 'action', 'date_from', 'date_to', 'search']))
                     <a href="{{ route('admin.activity-logs.index') }}" class="btn-table-action">
                         <i class="bi bi-x-circle"></i> Reset
                     </a>
@@ -212,7 +241,9 @@
                                         </div>
                                     </div>
                                 @else
-                                    <span class="text-muted small fst-italic">System</span>
+                                    <span class="badge bg-secondary-subtle text-secondary">
+                                        <i class="bi bi-gear"></i> System
+                                    </span>
                                 @endif
                             </td>
                             <td>
@@ -248,7 +279,7 @@
                                     </div>
                                     <p class="mt-2 mb-1 fw-medium">Belum ada log</p>
                                     <small>
-                                        @if (request()->anyFilled(['user_id', 'action', 'search']))
+                                        @if (request()->anyFilled(['role', 'action', 'search']))
                                             Tidak ada log yang cocok dengan filter
                                         @else
                                             Aktivitas akan muncul di sini
