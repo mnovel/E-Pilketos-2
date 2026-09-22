@@ -1,6 +1,10 @@
 *
 !.gitignore
 !assets/
+!assets/**
 !candidates/
+!candidates/**
 !kartu-pelajar/
+!kartu-pelajar/**
 !template/
+!template/**
