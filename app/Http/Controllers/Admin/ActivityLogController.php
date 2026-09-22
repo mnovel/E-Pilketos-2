@@ -66,7 +66,12 @@ class ActivityLogController extends Controller
         ];
 
         // Filter options
-        $users = User::whereIn('role', [UserRole::ADMIN, UserRole::OPERATOR])
+        $userIds = ActivityLog::whereNotNull('user_id')
+            ->distinct()
+            ->pluck('user_id');
+
+        $users = User::whereIn('id', $userIds)
+            ->orderBy('role')
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'role']);
 
