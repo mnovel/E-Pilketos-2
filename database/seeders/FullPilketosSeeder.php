@@ -32,8 +32,8 @@ class FullPilketosSeeder extends Seeder
             return;
         }
 
-        // ⏰ Election: mulai 5 menit dari sekarang, selesai 1 jam dari sekarang
-        $electionStart = now()->addMinutes(5);
+        // ⏰ Election: mulai 3 menit dari sekarang, selesai 1 jam dari sekarang
+        $electionStart = now()->addMinutes(3);
         $electionEnd   = now()->addHour();
 
         $election = Election::updateOrCreate(
@@ -147,23 +147,23 @@ class FullPilketosSeeder extends Seeder
         $sessionsData = [
             [
                 'kelas'          => 'X-IPA-1',
-                'mulai_offset'   => 5,
+                'mulai_offset'   => 3,
                 'selesai_offset' => 10,
             ],
             [
                 'kelas'          => 'X-IPA-2',
-                'mulai_offset'   => 5,     // paralel dengan X-IPA-1
+                'mulai_offset'   => 3,     // paralel dengan X-IPA-1
                 'selesai_offset' => 10,
             ],
             [
                 'kelas'          => 'X-IPA-3',
-                'mulai_offset'   => 10,
-                'selesai_offset' => 15,
+                'mulai_offset'   => 7,
+                'selesai_offset' => 12,
             ],
             [
                 'kelas'          => 'X-IPS-1',
-                'mulai_offset'   => 15,
-                'selesai_offset' => 20,
+                'mulai_offset'   => 7,
+                'selesai_offset' => 12,
             ],
             [
                 'kelas'          => 'XI-IPA-1',
