@@ -47,9 +47,9 @@ class VoterImportController extends Controller
             fputcsv($file, ['nis', 'nama', 'kelas', 'email']);
 
             // Contoh
-            fputcsv($file, ['12345678', 'Ahmad Fauzi', 'X-IPA-1', 'ahmad@example.com']);
-            fputcsv($file, ['12345679', 'Siti Nurhaliza', 'X-IPA-2', '']);
-            fputcsv($file, ['12345680', 'Budi Santoso', 'X-IPS-1', '']);
+            fputcsv($file, ['12345678', 'Ahmad Fauzi', 'X-IPA-1', 'siswa-12345678@example.com']);
+            fputcsv($file, ['12345679', 'Siti Nurhaliza', 'X-IPA-2', 'siswa-12345679@example.com']);
+            fputcsv($file, ['12345680', 'Budi Santoso', 'X-IPS-1', 'siswa-12345680@example.com']);
 
             fclose($file);
         };
@@ -131,7 +131,7 @@ class VoterImportController extends Controller
                     'name'     => $item['data']['nama'],
                     'class_id' => $item['data']['class_id'],
                     'email'    => $email,
-                    'password' => Hash::make('password'),   // default password
+                    'password' => Hash::make('password'),
                     'role'     => UserRole::VOTER,
                     'status'   => VoterStatus::PENDING,
                 ]);
@@ -237,6 +237,11 @@ class VoterImportController extends Controller
             }
 
             if ($firstRow) {
+                // ✅ Hapus BOM UTF-8 dari kolom pertama header
+                if (isset($data[0])) {
+                    $data[0] = $this->stripBom((string) $data[0]);
+                }
+
                 $headers = array_map(fn($h) => strtolower(trim((string) $h)), $data);
                 $firstRow = false;
                 continue;
@@ -265,7 +270,11 @@ class VoterImportController extends Controller
                 return [];
             }
 
-            $headers = array_map(fn($h) => strtolower(trim((string) $h)), $data[0]);
+            // ✅ Strip BOM dari header (jaga-jaga)
+            $headers = array_map(function ($h) {
+                return strtolower(trim($this->stripBom((string) $h)));
+            }, $data[0]);
+
             $rows = [];
 
             for ($i = 1; $i < count($data); $i++) {
@@ -367,5 +376,31 @@ class VoterImportController extends Controller
         } while (User::where('email', $email)->exists());
 
         return $email;
+    }
+
+    /**
+     * Hapus BOM UTF-8 (Byte Order Mark) dari string.
+     *
+     * BOM sering ditambahkan Excel/Google Sheets di awal file CSV/Excel
+     * sehingga header pertama bisa jadi "\xEF\xBB\xBFnis" bukan "nis".
+     */
+    private function stripBom(string $value): string
+    {
+        // BOM UTF-8: EF BB BF
+        if (str_starts_with($value, "\xEF\xBB\xBF")) {
+            $value = substr($value, 3);
+        }
+
+        // BOM UTF-16 BE: FE FF (jarang, tapi jaga-jaga)
+        if (str_starts_with($value, "\xFE\xFF")) {
+            $value = substr($value, 2);
+        }
+
+        // BOM UTF-16 LE: FF FE
+        if (str_starts_with($value, "\xFF\xFE")) {
+            $value = substr($value, 2);
+        }
+
+        return $value;
     }
 }
