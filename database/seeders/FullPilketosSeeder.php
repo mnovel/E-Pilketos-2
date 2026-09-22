@@ -33,8 +33,9 @@ class FullPilketosSeeder extends Seeder
         }
 
         // ⏰ Election: mulai 3 menit dari sekarang, selesai 1 jam dari sekarang
-        $electionStart = now()->addMinutes(3);
-        $electionEnd   = now()->addHour();
+        // ✅ startOfMinute() → detik selalu 00, biar match dengan cron
+        $electionStart = now()->addMinutes(3)->startOfMinute();
+        $electionEnd   = now()->addHour()->startOfMinute();
 
         $election = Election::updateOrCreate(
             ['title' => 'Pemilihan Ketua OSIS 2026'],
@@ -43,14 +44,14 @@ class FullPilketosSeeder extends Seeder
                 'deskripsi'    => 'Pemilihan Ketua OSIS periode 2025/2026 secara digital.',
                 'start_at'     => $electionStart,
                 'end_at'       => $electionEnd,
-                'status'       => ElectionStatus::DRAFT,   // ← draft, akan auto-activate via scheduler
+                'status'       => ElectionStatus::DRAFT,
                 'created_by'   => $admin->id,
             ]
         );
 
         $this->command->info("✅ Election #{$election->id} — {$election->title}");
-        $this->command->line("   Periode: {$election->start_at->format('d M Y H:i')} s/d {$election->end_at->format('d M Y H:i')}");
-        $this->command->line("   Status : DRAFT — akan auto-activate dalam 5 menit (tunggu scheduler)");
+        $this->command->line("   Periode: {$election->start_at->format('d M Y H:i:s')} s/d {$election->end_at->format('d M Y H:i:s')}");
+        $this->command->line("   Status : DRAFT — akan auto-activate dalam 3 menit (tunggu scheduler)");
         $this->command->newLine();
 
         // ==========================================
@@ -134,14 +135,14 @@ class FullPilketosSeeder extends Seeder
         // ==========================================
         // 4. ELECTION SESSIONS
         // ==========================================
-        // Sesi @2 menit, staggered dalam range election
+        // Sesi @beberapa menit, staggered dalam range election
         //
-        // Timeline:
-        // +5  → +7   : X-IPA-1, X-IPA-2   (2 sesi paralel)
-        // +10 → +12  : X-IPA-3
-        // +15 → +17  : X-IPS-1
+        // Timeline (relatif ke seed):
+        // +3  → +10  : X-IPA-1, X-IPA-2   (2 sesi paralel)
+        // +7  → +12  : X-IPA-3, X-IPS-1   (2 sesi paralel)
         // +20 → +22  : XI-IPA-1
         //
+        // ✅ Semua waktu detik = 00 → cocok dengan cron
         // Semua di-set SCHEDULED → auto-activate via scheduler
 
         $sessionsData = [
@@ -152,7 +153,7 @@ class FullPilketosSeeder extends Seeder
             ],
             [
                 'kelas'          => 'X-IPA-2',
-                'mulai_offset'   => 3,     // paralel dengan X-IPA-1
+                'mulai_offset'   => 3,
                 'selesai_offset' => 10,
             ],
             [
@@ -180,9 +181,9 @@ class FullPilketosSeeder extends Seeder
                 continue;
             }
 
-            // Hitung waktu berdasarkan offset
-            $mulaiWaktu   = now()->addMinutes($data['mulai_offset']);
-            $selesaiWaktu = now()->addMinutes($data['selesai_offset']);
+            // ✅ startOfMinute() → detik = 00
+            $mulaiWaktu   = now()->addMinutes($data['mulai_offset'])->startOfMinute();
+            $selesaiWaktu = now()->addMinutes($data['selesai_offset'])->startOfMinute();
 
             $session = ElectionSession::updateOrCreate(
                 [
@@ -193,7 +194,7 @@ class FullPilketosSeeder extends Seeder
                     'tanggal'       => $mulaiWaktu->format('Y-m-d'),
                     'waktu_mulai'   => $mulaiWaktu->format('H:i'),
                     'waktu_selesai' => $selesaiWaktu->format('H:i'),
-                    'status'        => SessionStatus::SCHEDULED,   // ← auto-activate nanti
+                    'status'        => SessionStatus::SCHEDULED,
                     'operator_id'   => $admin->id,
                     'activated_at'  => null,
                     'closed_at'     => null,
@@ -212,14 +213,14 @@ class FullPilketosSeeder extends Seeder
         // ==========================================
         // 5. TIMELINE PREVIEW
         // ==========================================
-        $this->command->info('⏰ TIMELINE (relative ke sekarang):');
+        $this->command->info('⏰ TIMELINE (relative ke sekarang, detik = 00):');
         $this->command->newLine();
 
-        $this->command->line('  <fg=cyan>+5m  → +7m </>  Election START + Sesi X-IPA-1 & X-IPA-2 auto-active');
-        $this->command->line('  <fg=cyan>+7m        </>  X-IPA-1 & X-IPA-2 auto-close');
-        $this->command->line('  <fg=cyan>+10m → +12m</>  Sesi X-IPA-3 auto-active & auto-close');
-        $this->command->line('  <fg=cyan>+15m → +17m</>  Sesi X-IPS-1 auto-active & auto-close');
-        $this->command->line('  <fg=cyan>+20m → +22m</>  Sesi XI-IPA-1 auto-active & auto-close');
+        $this->command->line('  <fg=cyan>+3m  → +10m</>  Election START + Sesi X-IPA-1 & X-IPA-2 auto-active');
+        $this->command->line('  <fg=cyan>+7m  → +12m</>  X-IPA-3 & X-IPS-1 auto-active (paralel)');
+        $this->command->line('  <fg=cyan>+10m       </>  X-IPA-1 & X-IPA-2 auto-close');
+        $this->command->line('  <fg=cyan>+12m       </>  X-IPA-3 & X-IPS-1 auto-close');
+        $this->command->line('  <fg=cyan>+20m → +22m</>  XI-IPA-1 auto-active & auto-close');
         $this->command->line('  <fg=cyan>+60m       </>  Election auto-close');
         $this->command->newLine();
 
@@ -269,13 +270,10 @@ class FullPilketosSeeder extends Seeder
         $this->command->newLine();
 
         $this->command->line('<fg=yellow>📝 Cara Test:</fg=yellow>');
-        $this->command->line('  1. Jalankan scheduler: <fg=green>php artisan schedule:work</>');
-        $this->command->line('  2. Tunggu 5 menit → election & 2 sesi auto-active');
+        $this->command->line('  1. Pastikan cron / scheduler jalan');
+        $this->command->line('  2. Tunggu 3 menit → election & 2 sesi auto-active');
         $this->command->line('  3. Login operator → buka /device/checkin → QR muncul');
         $this->command->line('  4. Login voter → scan QR → check-in');
-        $this->command->newLine();
-        $this->command->line('<fg=red>⚠️  WAJIB: jalankan scheduler paralel!</fg=red>');
-        $this->command->line('   php artisan schedule:work');
         $this->command->newLine();
     }
 
@@ -310,7 +308,7 @@ class FullPilketosSeeder extends Seeder
                 'email'    => $email,
                 'password' => Hash::make('password'),
                 'role'     => UserRole::VOTER,
-                'status'   => VoterStatus::VERIFIED,   // ← langsung verified biar auto-assign
+                'status'   => VoterStatus::VERIFIED,
             ]);
 
             // Assign role Spatie
