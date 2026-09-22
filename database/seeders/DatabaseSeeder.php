@@ -12,7 +12,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             ClassSeeder::class,
             AdminSeeder::class,
-            FullPilketosSeeder::class,
+            // FullPilketosSeeder::class,
         ]);
     }
 }
