@@ -14,7 +14,6 @@ use App\Models\User;
 use App\Models\Voter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class FullPilketosSeeder extends Seeder
 {
@@ -231,7 +230,7 @@ class FullPilketosSeeder extends Seeder
         $this->command->newLine();
 
         $voters = User::where('role', UserRole::VOTER)
-            ->where('class_id', $classes->pluck('id'))
+            ->whereIn('class_id', $classes->pluck('id')->all())
             ->orderBy('class_id')
             ->orderBy('nis')
             ->get();
