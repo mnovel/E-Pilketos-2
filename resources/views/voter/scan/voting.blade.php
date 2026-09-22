@@ -14,6 +14,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
+            background: #f8f9fa;
         }
 
         .status-card {
@@ -62,10 +63,49 @@
             </div>
         @endif
 
+        {{-- ==========================================
+             SUCCESS — Device sudah siap, tidak auto-redirect
+             ========================================== --}}
         @if ($status === 'success')
-            <div class="alert alert-success small mb-0">
+            <div class="alert alert-success small mb-3">
                 <i class="bi bi-arrow-left-right"></i>
                 Silakan lihat layar device untuk memilih
+            </div>
+
+            <div class="alert alert-info small mb-3">
+                <i class="bi bi-info-circle"></i>
+                Setelah selesai memilih, ikuti instruksi di layar device.
+            </div>
+
+            <div class="d-grid gap-2">
+                <a href="{{ route('voter.dashboard') }}" class="btn btn-success">
+                    <i class="bi bi-house-check"></i> Selesai — Kembali ke Dashboard
+                </a>
+            </div>
+        @endif
+
+        {{-- ==========================================
+             ERROR — Tombol retry
+             ========================================== --}}
+        @if ($status === 'error')
+            <div class="d-grid gap-2">
+                <a href="{{ route('voter.scan') }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i> Coba Scan Lagi
+                </a>
+                <a href="{{ route('voter.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-house"></i> Kembali ke Dashboard
+                </a>
+            </div>
+        @endif
+
+        {{-- ==========================================
+             INFO (sudah vote) — Tombol dashboard
+             ========================================== --}}
+        @if ($status === 'info')
+            <div class="d-grid gap-2">
+                <a href="{{ route('voter.dashboard') }}" class="btn btn-info text-white">
+                    <i class="bi bi-house"></i> Kembali ke Dashboard
+                </a>
             </div>
         @endif
     </div>
