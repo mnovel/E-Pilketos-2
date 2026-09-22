@@ -100,10 +100,10 @@
              ========================================== --}}
         @if ($status === 'error')
             <div class="d-grid gap-2">
-                <a href="{{ route('voter.scan') }}" class="btn btn-primary">
+                <a href="{{ route('voter.scan') }}" class="btn-custom btn-custom-primary">
                     <i class="bi bi-arrow-clockwise"></i> Coba Scan Lagi
                 </a>
-                <a href="{{ route('voter.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ route('voter.dashboard') }}" class="btn-custom btn-custom-secondary btn-sm">
                     <i class="bi bi-house"></i> Kembali ke Dashboard
                 </a>
             </div>
