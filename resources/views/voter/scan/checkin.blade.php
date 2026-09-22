@@ -46,6 +46,14 @@
             padding: 10px 20px;
             border: none;
             transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-spark:hover,
+        .btn-spark:focus,
+        .btn-spark:active {
+            text-decoration: none;
         }
 
         .btn-spark:hover {
@@ -55,6 +63,11 @@
 
         .btn-spark:active {
             transform: translateY(0);
+        }
+
+        .btn-spark:focus-visible {
+            outline: 2px solid rgba(13, 110, 253, 0.4);
+            outline-offset: 2px;
         }
 
         .btn-spark-success {
@@ -102,6 +115,11 @@
         .btn-spark i {
             margin-right: 6px;
         }
+
+        .d-grid .btn-spark {
+            display: block;
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -134,7 +152,9 @@
             </div>
         @endif
 
-        {{-- SUCCESS --}}
+        {{-- ==========================================
+             SUCCESS — Auto-redirect + tombol
+             ========================================== --}}
         @if ($status === 'success')
             <div class="alert alert-success small mb-3 rounded-3">
                 <i class="bi bi-arrow-right"></i>
@@ -158,7 +178,9 @@
             </div>
         @endif
 
-        {{-- ERROR --}}
+        {{-- ==========================================
+             ERROR — Tombol retry
+             ========================================== --}}
         @if ($status === 'error')
             <div class="d-grid gap-2">
                 <a href="{{ route('voter.scan') }}" class="btn-spark btn-spark-primary">
@@ -170,7 +192,9 @@
             </div>
         @endif
 
-        {{-- INFO --}}
+        {{-- ==========================================
+             INFO (sudah check-in) — Tombol ke voting
+             ========================================== --}}
         @if ($status === 'info')
             <div class="d-grid gap-2">
                 <a href="{{ route('voter.scan') }}" class="btn-spark btn-spark-info">
