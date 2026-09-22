@@ -15,6 +15,7 @@
             justify-content: center;
             padding: 20px;
             background: #f8f9fa;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         }
 
         .status-card {
@@ -34,6 +35,72 @@
 
         .progress-thin {
             height: 4px;
+        }
+
+        /* ==========================================
+           CUSTOM BUTTON STYLE (mirip Spark Admin)
+           ========================================== */
+        .btn-spark {
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-spark:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .btn-spark:active {
+            transform: translateY(0);
+        }
+
+        .btn-spark-success {
+            background: #198754;
+            color: #fff;
+        }
+
+        .btn-spark-success:hover {
+            background: #157347;
+            color: #fff;
+        }
+
+        .btn-spark-primary {
+            background: #0d6efd;
+            color: #fff;
+        }
+
+        .btn-spark-primary:hover {
+            background: #0b5ed7;
+            color: #fff;
+        }
+
+        .btn-spark-info {
+            background: #0dcaf0;
+            color: #fff;
+        }
+
+        .btn-spark-info:hover {
+            background: #31d2f2;
+            color: #fff;
+        }
+
+        .btn-spark-outline {
+            background: transparent;
+            border: 1.5px solid #dee2e6;
+            color: #6c757d;
+        }
+
+        .btn-spark-outline:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+            color: #495057;
+        }
+
+        .btn-spark i {
+            margin-right: 6px;
         }
     </style>
 </head>
@@ -55,7 +122,7 @@
         <p class="text-muted mb-4">{{ $message }}</p>
 
         @if (isset($voter))
-            <div class="bg-light rounded p-3 text-start mb-4">
+            <div class="bg-light rounded-3 p-3 text-start mb-4">
                 <div class="mb-1">
                     <small class="text-muted">Nama</small>
                     <div class="fw-medium">{{ $voter->user?->name ?? auth()->user()->name }}</div>
@@ -67,16 +134,13 @@
             </div>
         @endif
 
-        {{-- ==========================================
-             SUCCESS — Auto-redirect + tombol
-             ========================================== --}}
+        {{-- SUCCESS --}}
         @if ($status === 'success')
-            <div class="alert alert-success small mb-3">
+            <div class="alert alert-success small mb-3 rounded-3">
                 <i class="bi bi-arrow-right"></i>
                 Silakan menuju bilik suara
             </div>
 
-            {{-- Progress bar countdown --}}
             <div class="progress progress-thin mb-2">
                 <div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div>
             </div>
@@ -84,40 +148,35 @@
                 Otomatis ke halaman scan dalam <strong id="countdown">5</strong> detik...
             </p>
 
-            {{-- Tombol Aksi --}}
             <div class="d-grid gap-2">
-                <a href="{{ route('voter.scan') }}" class="btn btn-success">
+                <a href="{{ route('voter.scan') }}" class="btn-spark btn-spark-success">
                     <i class="bi bi-qr-code-scan"></i> Scan QR Voting Sekarang
                 </a>
-                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="stopCountdown()">
+                <button type="button" class="btn-spark btn-spark-outline btn-sm" onclick="stopCountdown()">
                     <i class="bi bi-x-circle"></i> Batalkan Auto-Redirect
                 </button>
             </div>
         @endif
 
-        {{-- ==========================================
-             ERROR — Tombol retry
-             ========================================== --}}
+        {{-- ERROR --}}
         @if ($status === 'error')
             <div class="d-grid gap-2">
-                <a href="{{ route('voter.scan') }}" class="btn-custom btn-custom-primary">
+                <a href="{{ route('voter.scan') }}" class="btn-spark btn-spark-primary">
                     <i class="bi bi-arrow-clockwise"></i> Coba Scan Lagi
                 </a>
-                <a href="{{ route('voter.dashboard') }}" class="btn-custom btn-custom-secondary btn-sm">
+                <a href="{{ route('voter.dashboard') }}" class="btn-spark btn-spark-outline btn-sm">
                     <i class="bi bi-house"></i> Kembali ke Dashboard
                 </a>
             </div>
         @endif
 
-        {{-- ==========================================
-             INFO (sudah check-in) — Tombol ke voting
-             ========================================== --}}
+        {{-- INFO --}}
         @if ($status === 'info')
             <div class="d-grid gap-2">
-                <a href="{{ route('voter.scan') }}" class="btn btn-info text-white">
+                <a href="{{ route('voter.scan') }}" class="btn-spark btn-spark-info">
                     <i class="bi bi-qr-code-scan"></i> Scan QR Voting
                 </a>
-                <a href="{{ route('voter.dashboard') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ route('voter.dashboard') }}" class="btn-spark btn-spark-outline btn-sm">
                     <i class="bi bi-house"></i> Dashboard
                 </a>
             </div>
@@ -126,12 +185,10 @@
 
     @if ($status === 'success')
         <script>
-            let countdown = 5;
             let stopped = false;
-
             const countdownEl = document.getElementById('countdown');
             const progressEl = document.getElementById('progressBar');
-            const totalTime = 5000; // ms
+            const totalTime = 5000;
             const startTime = Date.now();
 
             const interval = setInterval(() => {
@@ -140,14 +197,9 @@
                 const elapsed = Date.now() - startTime;
                 const remaining = Math.max(0, totalTime - elapsed);
 
-                // Update progress bar
                 progressEl.style.width = (remaining / totalTime * 100) + '%';
+                if (countdownEl) countdownEl.textContent = Math.ceil(remaining / 1000);
 
-                // Update text countdown
-                const sec = Math.ceil(remaining / 1000);
-                if (countdownEl) countdownEl.textContent = sec;
-
-                // Redirect saat habis
                 if (remaining <= 0) {
                     clearInterval(interval);
                     window.location.href = "{{ route('voter.scan') }}";
@@ -161,10 +213,9 @@
                 progressEl.classList.remove('bg-success');
                 progressEl.classList.add('bg-secondary');
                 if (countdownEl) countdownEl.parentElement.innerHTML =
-                    '<i class="bi bi-pause-circle"></i> Auto-redirect dibatalkan. Klik tombol untuk lanjut.';
+                    '<i class="bi bi-pause-circle"></i> Auto-redirect dibatalkan.';
             }
 
-            // Support: kalau user klik back browser → stop countdown
             window.addEventListener('beforeunload', () => {
                 stopped = true;
             });
