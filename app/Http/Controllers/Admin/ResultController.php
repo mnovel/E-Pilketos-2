@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ElectionStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Candidate;
 use App\Models\Election;
 use App\Models\ElectionSession;
@@ -90,7 +91,7 @@ class ResultController extends Controller
                     ? round(($votes / $totalVotes) * 100, 2)
                     : 0,
                 'is_winner'   => $votes > 0 && $votes === $maxVotes,
-                'rank'        => 0,   // diisi nanti
+                'rank'        => 0,
             ];
         })
             ->sortByDesc('votes')
@@ -156,6 +157,18 @@ class ResultController extends Controller
 
         $filename = 'hasil-pilketos-' . \Str::slug($election->title) . '-' . now()->format('Ymd-His') . '.pdf';
 
+        // ✅ Activity Log
+        ActivityLog::log('result.exported_pdf', [
+            'subject_type' => Election::class,
+            'subject_id'   => $election->id,
+            'meta'         => [
+                'title'         => $election->title,
+                'tahun_ajaran'  => $election->tahun_ajaran,
+                'filename'      => $filename,
+                'total_votes'   => $stats['total_voted'],
+            ],
+        ]);
+
         return $pdf->download($filename);
     }
 
@@ -165,6 +178,21 @@ class ResultController extends Controller
     public function exportExcel(Election $election): BinaryFileResponse
     {
         $filename = 'hasil-pilketos-' . \Str::slug($election->title) . '-' . now()->format('Ymd-His') . '.xlsx';
+
+        // ✅ Capture stats sebelum export
+        $stats = $this->getStats($election);
+
+        // ✅ Activity Log
+        ActivityLog::log('result.exported_excel', [
+            'subject_type' => Election::class,
+            'subject_id'   => $election->id,
+            'meta'         => [
+                'title'         => $election->title,
+                'tahun_ajaran'  => $election->tahun_ajaran,
+                'filename'      => $filename,
+                'total_votes'   => $stats['total_voted'],
+            ],
+        ]);
 
         return Excel::download(new ElectionResultExport($election), $filename);
     }

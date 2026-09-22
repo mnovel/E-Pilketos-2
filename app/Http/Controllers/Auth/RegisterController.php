@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\ClassRoom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -36,10 +37,10 @@ class RegisterController extends Controller
             'password'      => ['required', 'confirmed', Rules\Password::defaults()],
             'kartu_pelajar' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
-            'nis.unique'       => 'NIS sudah terdaftar.',
-            'class_id.required' => 'Kelas wajib dipilih.',
-            'class_id.exists'  => 'Kelas tidak valid.',
-            'email.unique'     => 'Email sudah terdaftar.',
+            'nis.unique'          => 'NIS sudah terdaftar.',
+            'class_id.required'   => 'Kelas wajib dipilih.',
+            'class_id.exists'     => 'Kelas tidak valid.',
+            'email.unique'        => 'Email sudah terdaftar.',
             'kartu_pelajar.image' => 'File harus berupa gambar.',
             'kartu_pelajar.max'   => 'Ukuran gambar maksimal 2MB.',
         ]);
@@ -65,6 +66,23 @@ class RegisterController extends Controller
         } catch (\Throwable $e) {
             Log::warning('Role voter belum ada: ' . $e->getMessage());
         }
+
+        Log::info("Voter registered: {$user->nis} ({$user->email})");
+
+        // ✅ Activity Log — user_id eksplisit (user baru, belum login)
+        ActivityLog::log('voter.register', [
+            'subject_type' => User::class,
+            'subject_id'   => $user->id,
+            'meta'         => [
+                'nis'          => $user->nis,
+                'name'         => $user->name,
+                'email'        => $user->email,
+                'kelas'        => $user->classRoom?->name ?? '-',
+                'class_id'     => $user->class_id,
+                'has_kartu'    => (bool) $user->kartu_pelajar,
+            ],
+            'user_id' => $user->id,
+        ]);
 
         return redirect()
             ->route('register.success')

@@ -7,6 +7,7 @@ use App\Enums\SessionStatus;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\ClassRoom;
 use App\Models\Election;
 use App\Models\ElectionSession;
@@ -166,9 +167,7 @@ class ElectionSessionController extends Controller
             'waktu_selesai.after'  => 'Waktu selesai harus setelah waktu mulai.',
         ]);
 
-        // ============================================
         // ✅ VALIDASI: kombinasi tanggal + jam dalam range election
-        // ============================================
         $sessionStart = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_mulai']);
         $sessionEnd   = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_selesai']);
 
@@ -225,10 +224,26 @@ class ElectionSessionController extends Controller
             'status'        => SessionStatus::SCHEDULED,
         ]);
 
+        $assignedCount = 0;
         if (!empty($validated['auto_assign'])) {
-            $count = $this->assignVotersToSession($session);
-            Log::info("Session created + {$count} voters assigned");
+            $assignedCount = $this->assignVotersToSession($session);
+            Log::info("Session created + {$assignedCount} voters assigned");
         }
+
+        // ✅ Activity Log
+        ActivityLog::log('session.created', [
+            'subject_type' => ElectionSession::class,
+            'subject_id'   => $session->id,
+            'meta'         => [
+                'election_id'    => $election->id,
+                'election'       => $election->title,
+                'kelas'          => $session->classRoom?->name,
+                'tanggal'        => $session->tanggal->format('Y-m-d'),
+                'waktu'          => $session->waktu_mulai . ' - ' . $session->waktu_selesai,
+                'operator'       => $session->operator?->name,
+                'voters_assigned' => $assignedCount,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.sessions.show', $session)
@@ -343,9 +358,7 @@ class ElectionSessionController extends Controller
             'operator_id'   => ['nullable', 'exists:users,id'],
         ]);
 
-        // ============================================
         // ✅ VALIDASI: kombinasi tanggal + jam dalam range election
-        // ============================================
         $sessionStart = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_mulai']);
         $sessionEnd   = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_selesai']);
 
@@ -363,7 +376,33 @@ class ElectionSessionController extends Controller
             ]);
         }
 
+        // ✅ Capture perubahan sebelum update
+        $changes = [];
+        foreach (['class_id', 'tanggal', 'waktu_mulai', 'waktu_selesai', 'operator_id'] as $field) {
+            $oldValue = $session->$field;
+            $newValue = $validated[$field] ?? null;
+
+            $oldStr = $oldValue instanceof \Carbon\Carbon ? $oldValue->format('Y-m-d') : (string) $oldValue;
+            $newStr = (string) $newValue;
+
+            if ($oldStr !== $newStr) {
+                $changes[$field] = ['from' => $oldStr, 'to' => $newStr];
+            }
+        }
+
         $session->update($validated);
+        $session->refresh();
+
+        // ✅ Activity Log
+        ActivityLog::log('session.updated', [
+            'subject_type' => ElectionSession::class,
+            'subject_id'   => $session->id,
+            'meta'         => [
+                'election' => $session->election?->title,
+                'kelas'    => $session->classRoom?->name,
+                'changes'  => $changes,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.sessions.show', $session)
@@ -382,6 +421,16 @@ class ElectionSessionController extends Controller
         $electionId = $session->election_id;
         $kelasName  = $session->classRoom?->name ?? '-';
 
+        // ✅ Capture metadata sebelum delete
+        $meta = [
+            'election_id'  => $session->election_id,
+            'election'     => $session->election?->title,
+            'kelas'        => $session->classRoom?->name,
+            'tanggal'      => $session->tanggal->format('Y-m-d'),
+            'waktu'        => $session->waktu_mulai . ' - ' . $session->waktu_selesai,
+            'total_voters' => $session->voters()->count(),
+        ];
+
         Voter::where('session_id', $session->id)->update([
             'session_id'    => null,
             'checked_in'    => false,
@@ -391,6 +440,13 @@ class ElectionSessionController extends Controller
         $session->delete();
 
         Log::warning("Session deleted: {$kelasName} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('session.deleted', [
+            'subject_type' => ElectionSession::class,
+            'subject_id'   => $session->id,
+            'meta'         => $meta,
+        ]);
 
         return redirect()
             ->route('admin.sessions.index', ['election_id' => $electionId])
@@ -422,6 +478,19 @@ class ElectionSessionController extends Controller
 
         Log::info("Voters assigned: {$count} to session #{$session->id} by " . auth()->user()->name);
 
+        // ✅ Activity Log — hanya kalau ada voter baru di-assign
+        if ($count > 0) {
+            ActivityLog::log('session.assigned', [
+                'subject_type' => ElectionSession::class,
+                'subject_id'   => $session->id,
+                'meta'         => [
+                    'election' => $session->election?->title,
+                    'kelas'    => $session->classRoom?->name,
+                    'assigned' => $count,
+                ],
+            ]);
+        }
+
         return back()->with('success', "{$count} pemilih berhasil di-assign ke sesi ini.");
     }
 
@@ -442,6 +511,17 @@ class ElectionSessionController extends Controller
         $kelasName = $session->classRoom?->name ?? '-';
 
         Log::info("Session manually closed: {$kelasName} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('session.closed', [
+            'subject_type' => ElectionSession::class,
+            'subject_id'   => $session->id,
+            'meta'         => [
+                'election' => $session->election?->title,
+                'kelas'    => $session->classRoom?->name,
+                'manual'   => true,
+            ],
+        ]);
 
         return back()->with('success', "Sesi kelas {$kelasName} berhasil ditutup.");
     }

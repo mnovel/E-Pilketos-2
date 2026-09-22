@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Voter;
 
 use App\Enums\SessionStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\CheckinDevice;
 use App\Models\CheckinLog;
 use App\Models\ElectionSession;
@@ -137,10 +138,18 @@ class ScanController extends Controller
 
         Log::info("Voter checked-in: {$user->name} ({$user->classRoom?->name}) at election #{$election->id}");
 
-        \App\Models\ActivityLog::log('checkin.success', [
+        // ✅ Activity Log — lengkapi meta
+        ActivityLog::log('checkin.success', [
             'subject_type' => Voter::class,
             'subject_id'   => $voter->id,
-            'meta'         => ['nama' => $user->name, 'kelas' => $user->classRoom?->name],
+            'meta'         => [
+                'election_id'  => $election->id,
+                'election'     => $election->title,
+                'session_id'   => $session->id,
+                'kelas'        => $user->classRoom?->name,
+                'nama'         => $user->name,
+                'device'       => $device->device_label,
+            ],
         ]);
 
         return view('voter.scan.checkin', [
@@ -253,6 +262,21 @@ class ScanController extends Controller
         });
 
         Log::info("Voting device assigned: voter #{$voter->id} → device #{$device->id}");
+
+        // ✅ Activity Log — voter berhasil scan QR voting
+        // (device sudah di-assign, voter siap memilih di bilik)
+        ActivityLog::log('voter.voting_scanned', [
+            'subject_type' => Voter::class,
+            'subject_id'   => $voter->id,
+            'meta'         => [
+                'election_id' => $election->id,
+                'election'    => $election->title,
+                'session_id'  => $session->id,
+                'kelas'       => $user->classRoom?->name,
+                'nama'        => $user->name,
+                'device'      => $device->device_label,
+            ],
+        ]);
 
         return view('voter.scan.voting', [
             'status'  => 'success',

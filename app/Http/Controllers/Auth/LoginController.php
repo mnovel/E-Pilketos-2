@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,10 +36,25 @@ class LoginController extends Controller
 
         $user = Auth::user();
 
+        // ✅ Voter PENDING / REJECTED tidak boleh login
         if (
             $user->role === UserRole::VOTER
             && $user->status !== VoterStatus::VERIFIED
         ) {
+            // ✅ Log SEBELUM logout (masih ada auth)
+            ActivityLog::log('auth.login_rejected', [
+                'subject_type' => User::class,
+                'subject_id'   => $user->id,
+                'meta'         => [
+                    'email'  => $user->email,
+                    'role'   => $user->role->value,
+                    'status' => $user->status->value,
+                    'reason' => $user->status === VoterStatus::REJECTED
+                        ? ($user->alasan_reject ?? 'Tidak ada alasan')
+                        : 'Menunggu verifikasi',
+                ],
+                'user_id' => $user->id,
+            ]);
 
             Auth::logout();
             $request->session()->invalidate();
@@ -56,8 +73,15 @@ class LoginController extends Controller
 
         $user->update(['last_login_at' => now()]);
 
-        \App\Models\ActivityLog::log('auth.login', [
-            'meta' => ['email' => $user->email, 'role' => $user->role->value],
+        // ✅ Log login berhasil
+        ActivityLog::log('auth.login', [
+            'subject_type' => User::class,
+            'subject_id'   => $user->id,
+            'meta'         => [
+                'email' => $user->email,
+                'role'  => $user->role->value,
+            ],
+            'user_id' => $user->id,
         ]);
 
         return redirect()->intended(match ($user->role) {
@@ -69,11 +93,25 @@ class LoginController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        // ✅ Capture user SEBELUM logout
+        $user = Auth::user();
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        \App\Models\ActivityLog::log('auth.logout');
+        // ✅ Log logout dengan user_id eksplisit
+        if ($user) {
+            ActivityLog::log('auth.logout', [
+                'subject_type' => User::class,
+                'subject_id'   => $user->id,
+                'meta'         => [
+                    'email' => $user->email,
+                    'role'  => $user->role->value,
+                ],
+                'user_id' => $user->id,
+            ]);
+        }
 
         return redirect()->route('login')->with('success', 'Anda berhasil logout.');
     }

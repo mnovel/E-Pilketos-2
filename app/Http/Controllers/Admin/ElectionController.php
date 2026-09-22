@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\ElectionStatus;
 use App\Enums\SessionStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Election;
 use App\Models\ElectionSession;
 use Illuminate\Http\RedirectResponse;
@@ -106,6 +107,18 @@ class ElectionController extends Controller
 
         Log::info("Election created: {$election->id} by " . auth()->user()->name);
 
+        // ✅ Activity Log
+        ActivityLog::log('election.created', [
+            'subject_type' => Election::class,
+            'subject_id'   => $election->id,
+            'meta'         => [
+                'title'        => $election->title,
+                'tahun_ajaran' => $election->tahun_ajaran,
+                'start_at'     => $election->start_at->toIso8601String(),
+                'end_at'       => $election->end_at->toIso8601String(),
+            ],
+        ]);
+
         return redirect()
             ->route('admin.elections.show', $election)
             ->with('success', "Pemilihan \"{$election->title}\" berhasil dibuat.");
@@ -189,9 +202,37 @@ class ElectionController extends Controller
             'end_at'       => ['required', 'date', 'after:start_at'],
         ]);
 
+        // ✅ Capture perubahan sebelum update
+        $changes = [];
+        foreach ($validated as $field => $newValue) {
+            $oldValue = $election->$field;
+
+            $oldStr = $oldValue instanceof \Carbon\Carbon
+                ? $oldValue->toIso8601String()
+                : (string) $oldValue;
+
+            $newStr = $newValue instanceof \Carbon\Carbon
+                ? $newValue->toIso8601String()
+                : (string) $newValue;
+
+            if ($oldStr !== $newStr) {
+                $changes[$field] = ['from' => $oldStr, 'to' => $newStr];
+            }
+        }
+
         $election->update($validated);
 
         Log::info("Election updated: {$election->id} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('election.updated', [
+            'subject_type' => Election::class,
+            'subject_id'   => $election->id,
+            'meta'         => [
+                'title'   => $election->title,
+                'changes' => $changes,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.elections.show', $election)
@@ -208,9 +249,26 @@ class ElectionController extends Controller
         }
 
         $title = $election->title;
+
+        // ✅ Capture metadata sebelum delete
+        $meta = [
+            'title'        => $election->title,
+            'tahun_ajaran' => $election->tahun_ajaran,
+            'candidates'   => $election->candidates()->count(),
+            'sessions'     => $election->sessions()->count(),
+            'voters'       => $election->voters()->count(),
+        ];
+
         $election->delete();
 
         Log::warning("Election deleted: {$title} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('election.deleted', [
+            'subject_type' => Election::class,
+            'subject_id'   => $election->id,
+            'meta'         => $meta,
+        ]);
 
         return redirect()
             ->route('admin.elections.index')
@@ -242,6 +300,17 @@ class ElectionController extends Controller
 
         Log::info("Election manually closed: {$election->id} (+{$closedSessions} sessions) by " . auth()->user()->name);
 
+        // ✅ Activity Log
+        ActivityLog::log('election.closed', [
+            'subject_type' => Election::class,
+            'subject_id'   => $election->id,
+            'meta'         => [
+                'title'           => $election->title,
+                'closed_sessions' => $closedSessions,
+                'manual'          => true,
+            ],
+        ]);
+
         return back()->with('success', 'Pemilihan berhasil ditutup.');
     }
 
@@ -264,10 +333,15 @@ class ElectionController extends Controller
         ]);
 
         Log::info("Election published: {$election->id} by " . auth()->user()->name);
-        \App\Models\ActivityLog::log('election.published', [
+
+        // ✅ Activity Log
+        ActivityLog::log('election.published', [
             'subject_type' => Election::class,
             'subject_id'   => $election->id,
-            'meta'         => ['title' => $election->title, 'votes' => $election->votes()->count()],
+            'meta'         => [
+                'title' => $election->title,
+                'votes' => $election->votes()->count(),
+            ],
         ]);
 
         return back()->with('success', 'Hasil pemilihan berhasil dipublikasikan.');

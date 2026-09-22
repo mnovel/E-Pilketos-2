@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules;
-
+use Illuminate\View\View;
 
 class VoterController extends Controller
 {
@@ -89,10 +89,16 @@ class VoterController extends Controller
         ]);
 
         Log::info("Voter approved: {$voter->nis} by " . auth()->user()->name);
-        \App\Models\ActivityLog::log('voter.verified', [
+
+        // ✅ Activity Log
+        ActivityLog::log('voter.verified', [
             'subject_type' => User::class,
             'subject_id'   => $voter->id,
-            'meta'         => ['nis' => $voter->nis, 'name' => $voter->name],
+            'meta'         => [
+                'nis'   => $voter->nis,
+                'name'  => $voter->name,
+                'kelas' => $voter->classRoom?->name,
+            ],
         ]);
 
         return back()->with('success', "Voter {$voter->name} berhasil diverifikasi.");
@@ -120,6 +126,18 @@ class VoterController extends Controller
 
         Log::info("Voter rejected: {$voter->nis} by " . auth()->user()->name);
 
+        // ✅ Activity Log — TAMBAH INI
+        ActivityLog::log('voter.rejected', [
+            'subject_type' => User::class,
+            'subject_id'   => $voter->id,
+            'meta'         => [
+                'nis'    => $voter->nis,
+                'name'   => $voter->name,
+                'kelas'  => $voter->classRoom?->name,
+                'alasan' => $request->alasan_reject,
+            ],
+        ]);
+
         return back()->with('success', "Voter {$voter->name} ditolak.");
     }
 
@@ -142,13 +160,20 @@ class VoterController extends Controller
                 'verified_at' => now(),
             ]);
 
-        \App\Models\ActivityLog::log('voter.bulk_verified', [
-            'meta' => ['count' => $count, 'ids' => $request->ids],
+        // ✅ Activity Log
+        ActivityLog::log('voter.bulk_verified', [
+            'meta' => [
+                'count' => $count,
+                'ids'   => $request->ids,
+            ],
         ]);
 
         return back()->with('success', "{$count} voter berhasil diverifikasi.");
     }
 
+    /**
+     * Bulk reject.
+     */
     public function bulkReject(Request $request): RedirectResponse
     {
         $request->validate([
@@ -169,8 +194,13 @@ class VoterController extends Controller
                 'alasan_reject' => $request->alasan_reject,
             ]);
 
-        \App\Models\ActivityLog::log('voter.bulk_rejected', [
-            'meta' => ['count' => $count, 'ids' => $request->ids],
+        // ✅ Activity Log
+        ActivityLog::log('voter.bulk_rejected', [
+            'meta' => [
+                'count'  => $count,
+                'ids'    => $request->ids,
+                'alasan' => $request->alasan_reject,
+            ],
         ]);
 
         return back()->with('success', "{$count} voter ditolak.");
@@ -194,8 +224,8 @@ class VoterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // Log activity
-        \App\Models\ActivityLog::log('voter.password_reset', [
+        // ✅ Activity Log — JANGAN log password!
+        ActivityLog::log('voter.password_reset', [
             'subject_type' => User::class,
             'subject_id'   => $voter->id,
             'meta'         => [
@@ -221,8 +251,8 @@ class VoterController extends Controller
             'password' => Hash::make($newPassword),
         ]);
 
-        // Log activity (JANGAN log password!)
-        \App\Models\ActivityLog::log('voter.password_generated', [
+        // ✅ Activity Log — JANGAN log password!
+        ActivityLog::log('voter.password_generated', [
             'subject_type' => User::class,
             'subject_id'   => $voter->id,
             'meta'         => [
@@ -231,7 +261,8 @@ class VoterController extends Controller
             ],
         ]);
 
-        return back()->with('generated_password', $newPassword)
+        return back()
+            ->with('generated_password', $newPassword)
             ->with('generated_for', $voter->name)
             ->with('success', "Password baru berhasil digenerate untuk \"{$voter->name}\".");
     }

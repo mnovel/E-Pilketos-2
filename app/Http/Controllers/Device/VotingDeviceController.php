@@ -6,6 +6,7 @@ use App\Enums\DeviceStatus;
 use App\Enums\ElectionStatus;
 use App\Enums\SessionStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Candidate;
 use App\Models\Election;
 use App\Models\Vote;
@@ -247,12 +248,17 @@ class VotingDeviceController extends Controller
                 $device->rotateToken(30);
 
                 Log::info("Vote submitted: voter #{$voter->id} at election {$device->election_id}");
-                \App\Models\ActivityLog::log('vote.submitted', [
+
+                // ✅ Activity Log — user_id NULL (system action, vote anonim)
+                // ⚠️ JANGAN tambah voter_id / user_id voter — jaga anonimitas!
+                ActivityLog::log('vote.submitted', [
                     'meta' => [
-                        'session_id'   => $device->session_id,
+                        'election_id'  => $device->election_id,
+                        'session_id'   => $voter->session_id,
                         'candidate_id' => $candidate->id,
+                        'via_device'   => $device->device_label,
                     ],
-                ]);
+                ], userId: null);
             });
 
             return response()->json(['status' => 'ok']);

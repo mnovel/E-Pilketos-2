@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\ClassRoom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -103,6 +104,9 @@ class VoterImportController extends Controller
                 ->with('error', 'Sesi import kadaluarsa. Upload ulang file.');
         }
 
+        // ✅ Capture filename asli untuk log
+        $originalFilename = basename($tempPath);
+
         $rows = $this->parseFileFromPath(Storage::disk('local')->path($tempPath));
         $preview = $this->validateRows($rows);
 
@@ -157,6 +161,17 @@ class VoterImportController extends Controller
         session()->forget('voter_import_file');
 
         Log::info("Voter import: {$imported} imported, {$failed} failed by " . auth()->user()->name);
+
+        // ✅ Activity Log — catat hasil import
+        ActivityLog::log('voter.imported', [
+            'meta' => [
+                'imported'  => $imported,
+                'failed'    => $failed,
+                'total'     => $imported + $failed,
+                'filename'  => $originalFilename,
+                'sample_errors' => array_slice($errors, 0, 5),  // max 5 error di meta
+            ],
+        ]);
 
         return redirect()
             ->route('admin.voters.import.report')
@@ -380,23 +395,17 @@ class VoterImportController extends Controller
 
     /**
      * Hapus BOM UTF-8 (Byte Order Mark) dari string.
-     *
-     * BOM sering ditambahkan Excel/Google Sheets di awal file CSV/Excel
-     * sehingga header pertama bisa jadi "\xEF\xBB\xBFnis" bukan "nis".
      */
     private function stripBom(string $value): string
     {
-        // BOM UTF-8: EF BB BF
         if (str_starts_with($value, "\xEF\xBB\xBF")) {
             $value = substr($value, 3);
         }
 
-        // BOM UTF-16 BE: FE FF (jarang, tapi jaga-jaga)
         if (str_starts_with($value, "\xFE\xFF")) {
             $value = substr($value, 2);
         }
 
-        // BOM UTF-16 LE: FF FE
         if (str_starts_with($value, "\xFF\xFE")) {
             $value = substr($value, 2);
         }

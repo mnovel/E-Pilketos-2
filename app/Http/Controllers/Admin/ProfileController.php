@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -36,9 +37,30 @@ class ProfileController extends Controller
             'email.unique'   => 'Email sudah digunakan user lain.',
         ]);
 
+        // ✅ Capture perubahan sebelum update
+        $changes = [];
+        foreach ($validated as $field => $newValue) {
+            $oldValue = $user->$field;
+
+            if ((string) $oldValue !== (string) $newValue) {
+                $changes[$field] = ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+
         $user->update($validated);
 
         Log::info("Profile updated: {$user->email}");
+
+        // ✅ Activity Log — hanya kalau ada perubahan
+        if (!empty($changes)) {
+            ActivityLog::log('profile.updated', [
+                'subject_type' => \App\Models\User::class,
+                'subject_id'   => $user->id,
+                'meta'         => [
+                    'changes' => $changes,
+                ],
+            ]);
+        }
 
         return back()->with('success', 'Data profile berhasil diperbarui.');
     }
@@ -67,6 +89,15 @@ class ProfileController extends Controller
         ]);
 
         Log::info("Password changed: " . auth()->user()->email);
+
+        // ✅ Activity Log — JANGAN log password!
+        ActivityLog::log('profile.password', [
+            'subject_type' => \App\Models\User::class,
+            'subject_id'   => auth()->id(),
+            'meta'         => [
+                'email' => auth()->user()->email,
+            ],
+        ]);
 
         return back()->with('success', 'Password berhasil diubah.');
     }

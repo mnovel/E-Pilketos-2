@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\ClassRoom;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -86,6 +87,19 @@ class ClassRoomController extends Controller
 
         Log::info("ClassRoom created: {$class->name} by " . auth()->user()->name);
 
+        // ✅ Activity Log
+        ActivityLog::log('class.created', [
+            'subject_type' => ClassRoom::class,
+            'subject_id'   => $class->id,
+            'meta'         => [
+                'name'      => $class->name,
+                'tingkat'   => $class->tingkat,
+                'jurusan'   => $class->jurusan,
+                'rombel'    => $class->rombel,
+                'is_active' => $class->is_active,
+            ],
+        ]);
+
         return redirect()
             ->route('admin.classes.index')
             ->with('success', "Kelas \"{$class->name}\" berhasil ditambahkan.");
@@ -126,15 +140,38 @@ class ClassRoomController extends Controller
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $class->update([
+        // Data baru yang akan disimpan
+        $newData = [
             'name'      => strtoupper($validated['name']),
             'tingkat'   => strtoupper($validated['tingkat']),
             'jurusan'   => $validated['jurusan'] ? strtoupper($validated['jurusan']) : null,
             'rombel'    => $validated['rombel'] ?? null,
             'is_active' => $request->boolean('is_active', true),
-        ]);
+        ];
+
+        // ✅ Capture perubahan sebelum update
+        $changes = [];
+        foreach ($newData as $field => $newValue) {
+            $oldValue = $class->$field;
+
+            if ((string) $oldValue !== (string) $newValue) {
+                $changes[$field] = ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+
+        $class->update($newData);
 
         Log::info("ClassRoom updated: {$class->name} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('class.updated', [
+            'subject_type' => ClassRoom::class,
+            'subject_id'   => $class->id,
+            'meta'         => [
+                'name'    => $class->name,
+                'changes' => $changes,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.classes.index')
@@ -159,9 +196,26 @@ class ClassRoomController extends Controller
         }
 
         $name = $class->name;
+
+        // ✅ Capture metadata sebelum delete
+        $meta = [
+            'name'      => $class->name,
+            'tingkat'   => $class->tingkat,
+            'jurusan'   => $class->jurusan,
+            'rombel'    => $class->rombel,
+            'is_active' => $class->is_active,
+        ];
+
         $class->delete();
 
         Log::warning("ClassRoom deleted: {$name} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('class.deleted', [
+            'subject_type' => ClassRoom::class,
+            'subject_id'   => $class->id,
+            'meta'         => $meta,
+        ]);
 
         return redirect()
             ->route('admin.classes.index')
@@ -173,11 +227,25 @@ class ClassRoomController extends Controller
      */
     public function toggleActive(ClassRoom $class): RedirectResponse
     {
+        $oldStatus = $class->is_active;
+
         $class->update(['is_active' => !$class->is_active]);
 
         $status = $class->is_active ? 'diaktifkan' : 'dinonaktifkan';
 
         Log::info("ClassRoom {$status}: {$class->name} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('class.toggled', [
+            'subject_type' => ClassRoom::class,
+            'subject_id'   => $class->id,
+            'meta'         => [
+                'name'   => $class->name,
+                'status' => $status,
+                'from'   => $oldStatus,
+                'to'     => $class->is_active,
+            ],
+        ]);
 
         return back()->with('success', "Kelas \"{$class->name}\" berhasil {$status}.");
     }

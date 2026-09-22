@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\ElectionStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Candidate;
 use App\Models\ClassRoom;
 use App\Models\Election;
@@ -119,6 +120,18 @@ class CandidateController extends Controller
 
         Log::info("Candidate created: {$candidate->nama} by " . auth()->user()->name);
 
+        // ✅ Activity Log
+        ActivityLog::log('candidate.created', [
+            'subject_type' => Candidate::class,
+            'subject_id'   => $candidate->id,
+            'meta'         => [
+                'nama'        => $candidate->nama,
+                'no_urut'     => $candidate->no_urut,
+                'election_id' => $election->id,
+                'election'    => $election->title,
+            ],
+        ]);
+
         return redirect()
             ->route('admin.candidates.index', ['election_id' => $election->id])
             ->with('success', "Kandidat \"{$candidate->nama}\" berhasil ditambahkan.");
@@ -185,16 +198,41 @@ class CandidateController extends Controller
             'program_kerja' => $validated['program_kerja'] ?? null,
         ];
 
+        // ✅ Capture perubahan sebelum update
+        $changes = [];
+        foreach (['no_urut', 'nama', 'class_id', 'visi', 'misi', 'program_kerja'] as $field) {
+            $oldValue = $candidate->$field;
+            $newValue = $data[$field];
+
+            if ((string) $oldValue !== (string) $newValue) {
+                $changes[$field] = ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+
         if ($request->hasFile('foto')) {
             if ($candidate->foto && Storage::disk('public')->exists($candidate->foto)) {
                 Storage::disk('public')->delete($candidate->foto);
             }
             $data['foto'] = $request->file('foto')->store('candidates', 'public');
+            $changes['foto'] = ['from' => $candidate->foto, 'to' => $data['foto']];
         }
 
         $candidate->update($data);
 
         Log::info("Candidate updated: {$candidate->nama} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('candidate.updated', [
+            'subject_type' => Candidate::class,
+            'subject_id'   => $candidate->id,
+            'meta'         => [
+                'nama'        => $candidate->nama,
+                'no_urut'     => $candidate->no_urut,
+                'election_id' => $candidate->election_id,
+                'election'    => $candidate->election->title,
+                'changes'     => $changes,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.candidates.index', ['election_id' => $candidate->election_id])
@@ -215,6 +253,15 @@ class CandidateController extends Controller
         $electionId = $candidate->election_id;
         $nama       = $candidate->nama;
 
+        // ✅ Capture metadata sebelum delete
+        $meta = [
+            'nama'        => $candidate->nama,
+            'no_urut'     => $candidate->no_urut,
+            'election_id' => $candidate->election_id,
+            'election'    => $candidate->election->title,
+            'has_foto'    => (bool) $candidate->foto,
+        ];
+
         if ($candidate->foto && Storage::disk('public')->exists($candidate->foto)) {
             Storage::disk('public')->delete($candidate->foto);
         }
@@ -222,6 +269,13 @@ class CandidateController extends Controller
         $candidate->delete();
 
         Log::warning("Candidate deleted: {$nama} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('candidate.deleted', [
+            'subject_type' => Candidate::class,
+            'subject_id'   => $candidate->id,
+            'meta'         => $meta,
+        ]);
 
         return redirect()
             ->route('admin.candidates.index', ['election_id' => $electionId])

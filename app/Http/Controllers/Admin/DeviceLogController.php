@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\CheckinDevice;
 use App\Models\Election;
 use App\Models\VotingDevice;
@@ -86,10 +87,32 @@ class DeviceLogController extends Controller
      */
     public function destroyCheckin(CheckinDevice $device): RedirectResponse
     {
-        $label = $device->device_label;
+        $label   = $device->device_label;
+        $isOnline = $device->last_ping_at
+            && $device->last_ping_at->gte(now()->subMinutes(self::ONLINE_THRESHOLD_MINUTES));
+
+        // ✅ Capture metadata
+        $meta = [
+            'device_label' => $device->device_label,
+            'election_id'  => $device->election_id,
+            'election'     => $device->election?->title,
+            'last_ping'    => $device->last_ping_at?->toIso8601String(),
+            'was_online'   => $isOnline,
+        ];
+
         $device->delete();
 
         Log::info("CheckinDevice deleted via log panel: {$label} by " . auth()->user()->name);
+
+        // ✅ Activity Log — hanya log kalau device masih ONLINE
+        // (hapus device offline = rutinitas, tidak perlu dicatat)
+        if ($isOnline) {
+            ActivityLog::log('device.checkin_deleted', [
+                'subject_type' => CheckinDevice::class,
+                'subject_id'   => $device->id,
+                'meta'         => $meta,
+            ]);
+        }
 
         return back()->with('success', "Device check-in \"{$label}\" dihapus.");
     }
@@ -99,10 +122,33 @@ class DeviceLogController extends Controller
      */
     public function destroyVoting(VotingDevice $device): RedirectResponse
     {
-        $label = $device->device_label;
+        $label    = $device->device_label;
+        $isOnline = $device->last_ping_at
+            && $device->last_ping_at->gte(now()->subMinutes(self::ONLINE_THRESHOLD_MINUTES));
+
+        // ✅ Capture metadata
+        $meta = [
+            'device_label' => $device->device_label,
+            'election_id'  => $device->election_id,
+            'election'     => $device->election?->title,
+            'status'       => $device->status->value,
+            'assigned_to'  => $device->assignedVoter?->user?->name,
+            'last_ping'    => $device->last_ping_at?->toIso8601String(),
+            'was_online'   => $isOnline,
+        ];
+
         $device->delete();
 
         Log::info("VotingDevice deleted via log panel: {$label} by " . auth()->user()->name);
+
+        // ✅ Activity Log — hanya kalau device masih ONLINE atau ASSIGNED
+        if ($isOnline || $device->status->value === 'assigned') {
+            ActivityLog::log('device.voting_deleted', [
+                'subject_type' => VotingDevice::class,
+                'subject_id'   => $device->id,
+                'meta'         => $meta,
+            ]);
+        }
 
         return back()->with('success', "Device voting \"{$label}\" dihapus.");
     }
@@ -114,6 +160,15 @@ class DeviceLogController extends Controller
     {
         $threshold = now()->subMinutes(self::STALE_THRESHOLD_MINUTES);
 
+        // ✅ Capture jumlah sebelum delete
+        $checkinCount = CheckinDevice::where(function ($q) use ($threshold) {
+            $q->where('last_ping_at', '<', $threshold)->orWhereNull('last_ping_at');
+        })->count();
+
+        $votingCount = VotingDevice::where(function ($q) use ($threshold) {
+            $q->where('last_ping_at', '<', $threshold)->orWhereNull('last_ping_at');
+        })->count();
+
         $checkin = CheckinDevice::where(function ($q) use ($threshold) {
             $q->where('last_ping_at', '<', $threshold)->orWhereNull('last_ping_at');
         })->delete();
@@ -123,6 +178,18 @@ class DeviceLogController extends Controller
         })->delete();
 
         Log::warning("Purged stale devices: {$checkin} checkin, {$voting} voting by " . auth()->user()->name);
+
+        // ✅ Activity Log — hanya kalau ada yang dihapus & threshold > 5 device
+        if ($checkin + $voting > 0) {
+            ActivityLog::log('device.purged', [
+                'meta' => [
+                    'checkin_purged'   => $checkin,
+                    'voting_purged'    => $voting,
+                    'total_purged'     => $checkin + $voting,
+                    'stale_threshold'  => self::STALE_THRESHOLD_MINUTES . ' menit',
+                ],
+            ]);
+        }
 
         return back()->with('success', "Berhasil hapus {$checkin} check-in & {$voting} voting device yang offline.");
     }

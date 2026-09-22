@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -92,6 +93,16 @@ class OperatorController extends Controller
 
         Log::info("Operator created: {$operator->email} by " . auth()->user()->name);
 
+        // ✅ Activity Log
+        ActivityLog::log('operator.created', [
+            'subject_type' => User::class,
+            'subject_id'   => $operator->id,
+            'meta'         => [
+                'name'  => $operator->name,
+                'email' => $operator->email,
+            ],
+        ]);
+
         return redirect()
             ->route('admin.operators.index')
             ->with('success', "Operator \"{$operator->name}\" berhasil ditambahkan.");
@@ -140,9 +151,30 @@ class OperatorController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $operator->id],
         ]);
 
+        // ✅ Capture perubahan sebelum update
+        $changes = [];
+        foreach ($validated as $field => $newValue) {
+            $oldValue = $operator->$field;
+
+            if ((string) $oldValue !== (string) $newValue) {
+                $changes[$field] = ['from' => $oldValue, 'to' => $newValue];
+            }
+        }
+
         $operator->update($validated);
 
         Log::info("Operator updated: {$operator->email} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('operator.updated', [
+            'subject_type' => User::class,
+            'subject_id'   => $operator->id,
+            'meta'         => [
+                'name'    => $operator->name,
+                'email'   => $operator->email,
+                'changes' => $changes,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.operators.show', $operator)
@@ -168,7 +200,8 @@ class OperatorController extends Controller
             );
         }
 
-        $name = $operator->name;
+        $name  = $operator->name;
+        $email = $operator->email;
 
         // Hapus role Spatie
         try {
@@ -180,6 +213,16 @@ class OperatorController extends Controller
         $operator->delete();
 
         Log::warning("Operator deleted: {$name} by " . auth()->user()->name);
+
+        // ✅ Activity Log
+        ActivityLog::log('operator.deleted', [
+            'subject_type' => User::class,
+            'subject_id'   => $operator->id,
+            'meta'         => [
+                'name'  => $name,
+                'email' => $email,
+            ],
+        ]);
 
         return redirect()
             ->route('admin.operators.index')
@@ -202,6 +245,16 @@ class OperatorController extends Controller
         ]);
 
         Log::info("Operator password reset: {$operator->email} by " . auth()->user()->name);
+
+        // ✅ Activity Log — JANGAN log password!
+        ActivityLog::log('operator.password_reset', [
+            'subject_type' => User::class,
+            'subject_id'   => $operator->id,
+            'meta'         => [
+                'name'  => $operator->name,
+                'email' => $operator->email,
+            ],
+        ]);
 
         return back()->with('success', 'Password operator berhasil direset.');
     }
