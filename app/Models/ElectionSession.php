@@ -157,11 +157,12 @@ class ElectionSession extends Model
      * - Status masih scheduled
      * - Dalam range waktu (hasStarted && !hasEnded)
      * - Election harus active
-     * - Minimal ada 1 voter (opsional, sesuai kebutuhan)
      *
-     * Efek samping:
-     * - Tutup sesi lain yang masih ACTIVE di election yang sama
-     *   (biar 1 sesi per waktu)
+     * CATATAN:
+     * - Sesi dapat berjalan PARALEL. Method ini TIDAK menutup sesi
+     *   ACTIVE lain di election yang sama.
+     * - Sesi hanya akan tertutup saat waktunya habis (autoCloseIfEnded)
+     *   atau ditutup manual oleh admin.
      */
     public function autoActivateIfReady(): bool
     {
@@ -177,15 +178,6 @@ class ElectionSession extends Model
         if (!$this->election || !$this->election->isActive()) {
             return false;
         }
-
-        // Tutup sesi lain yang masih active (biar konsisten)
-        static::where('election_id', $this->election_id)
-            ->where('id', '!=', $this->id)
-            ->where('status', SessionStatus::ACTIVE)
-            ->update([
-                'status'    => SessionStatus::CLOSED,
-                'closed_at' => now(),
-            ]);
 
         $this->update([
             'status'       => SessionStatus::ACTIVE,
