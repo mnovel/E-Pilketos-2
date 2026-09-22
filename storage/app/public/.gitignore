@@ -1,2 +1,6 @@
 *
 !.gitignore
+!assets/
+!candidates/
+!kartu-pelajar/
+!template/
