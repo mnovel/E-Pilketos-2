@@ -28,7 +28,6 @@ class VotingDeviceController extends Controller
      */
     public function index(): View
     {
-        // Kalau sudah tutup manual
         if (session('voting_manually_closed')) {
             return view('device.voting.closed');
         }
@@ -213,19 +212,49 @@ class VotingDeviceController extends Controller
                     throw new \Exception('Anda belum check-in.');
                 }
 
-                // Validasi session voter masih aktif
+                // ==========================================
+                // VALIDASI SESSION VOTER MASIH AKTIF
+                // ==========================================
                 $session = $voter->session;
 
                 if (!$session || !$session->isActive() || $session->hasEnded()) {
                     throw new \Exception('Sesi kelas Anda sudah berakhir.');
                 }
 
-                // Pastikan kandidat di election ini
+                // ==========================================
+                // ✅ VALIDASI KELAS VOTER = KELAS SESI
+                // ==========================================
+                if ($voter->class_id !== $session->class_id) {
+                    throw new \Exception('Kelas Anda tidak sesuai dengan sesi ini. Hubungi panitia.');
+                }
+
+                // ==========================================
+                // ✅ VALIDASI ELECTION MASIH AKTIF & DALAM WINDOW
+                // ==========================================
+                $election = Election::find($device->election_id);
+
+                if (!$election) {
+                    throw new \Exception('Data pemilihan tidak ditemukan.');
+                }
+
+                if (!$election->isActive()) {
+                    throw new \Exception('Pemilihan tidak dalam status aktif.');
+                }
+
+                if (!$election->isWithinTimeWindow()) {
+                    throw new \Exception('Pemilihan sudah di luar waktu yang ditentukan.');
+                }
+
+                // ==========================================
+                // PASTIKAN KANDIDAT DI ELECTION INI
+                // ==========================================
                 $candidate = Candidate::where('id', $request->candidate_id)
                     ->where('election_id', $device->election_id)
                     ->firstOrFail();
 
-                // Simpan vote (ANONIM)
+                // ==========================================
+                // SIMPAN VOTE (ANONIM)
+                // ==========================================
                 Vote::create([
                     'election_id'  => $device->election_id,
                     'session_id'   => $voter->session_id,
@@ -239,6 +268,7 @@ class VotingDeviceController extends Controller
                     'voted_at'  => now(),
                 ]);
 
+                // ✅ Clear cache setelah vote berhasil
                 Cache::forget('operator.dashboard');
                 Cache::forget('admin.live_stats');
 

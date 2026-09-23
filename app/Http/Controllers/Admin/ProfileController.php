@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -18,11 +19,21 @@ class ProfileController extends Controller
      */
     public function index(): View
     {
-        return view('admin.profile.index');
+        $user = auth()->user();
+
+        // ✅ Load relasi untuk voter (biar bisa tampilkan kelas & verifier)
+        if ($user->isVoter()) {
+            $user->load(['classRoom', 'verifier']);
+        }
+
+        return view('admin.profile.index', compact('user'));
     }
 
     /**
      * Update data profile.
+     *
+     * Hanya boleh update: name & email.
+     * Field lain (nis, class_id, status, role) → read-only.
      */
     public function update(Request $request): RedirectResponse
     {
@@ -54,7 +65,7 @@ class ProfileController extends Controller
         // ✅ Activity Log — hanya kalau ada perubahan
         if (!empty($changes)) {
             ActivityLog::log('profile.updated', [
-                'subject_type' => \App\Models\User::class,
+                'subject_type' => User::class,
                 'subject_id'   => $user->id,
                 'meta'         => [
                     'changes' => $changes,
@@ -92,7 +103,7 @@ class ProfileController extends Controller
 
         // ✅ Activity Log — JANGAN log password!
         ActivityLog::log('profile.password', [
-            'subject_type' => \App\Models\User::class,
+            'subject_type' => User::class,
             'subject_id'   => auth()->id(),
             'meta'         => [
                 'email' => auth()->user()->email,
