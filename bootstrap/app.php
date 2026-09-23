@@ -15,8 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
 
+        // ✅ TrustProxies dipanggil paling atas
         $middleware->prepend(TrustProxies::class);
-        // Register alias
+
         $middleware->alias([
             'role'           => RoleMiddleware::class,
             // 'school.network' => SchoolNetworkMiddleware::class,
