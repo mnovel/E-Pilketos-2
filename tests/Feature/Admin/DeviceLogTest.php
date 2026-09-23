@@ -6,7 +6,7 @@ use App\Enums\DeviceStatus;
 use App\Models\CheckinDevice;
 use App\Models\Election;
 use App\Models\VotingDevice;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,7 +17,7 @@ class DeviceLogTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware(VerifyCsrfToken::class);
+        $this->withoutMiddleware(PreventRequestForgery::class);
     }
 
     protected function createCheckinDevice(array $attrs = []): CheckinDevice

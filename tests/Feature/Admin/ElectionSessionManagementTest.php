@@ -9,7 +9,7 @@ use App\Models\ClassRoom;
 use App\Models\Election;
 use App\Models\ElectionSession;
 use App\Models\Voter;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +20,7 @@ class ElectionSessionManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware(VerifyCsrfToken::class);
+        $this->withoutMiddleware(PreventRequestForgery::class);
     }
 
     /**
@@ -41,19 +41,18 @@ class ElectionSessionManagementTest extends TestCase
 
     public function test_admin_can_create_session()
     {
+        $this->travelTo(now()->setTime(10, 0));
+
         $admin = $this->createAdmin();
         $election = $this->createWideElection();
         $class = ClassRoom::factory()->create();
 
-        $start = now()->addMinutes(10);
-        $end   = now()->addMinutes(30);
-
         $response = $this->actingAs($admin)->post(route('admin.sessions.store'), [
             'election_id'   => $election->id,
             'class_id'      => $class->id,
-            'tanggal'       => $start->toDateString(),
-            'waktu_mulai'   => $start->format('H:i'),
-            'waktu_selesai' => $end->format('H:i'),
+            'tanggal'       => now()->toDateString(),
+            'waktu_mulai'   => '11:00',
+            'waktu_selesai' => '11:30',
         ]);
 
         $response->assertRedirect();
@@ -117,6 +116,8 @@ class ElectionSessionManagementTest extends TestCase
 
     public function test_create_session_fails_if_operator_conflict()
     {
+        $this->travelTo(now()->setTime(10, 0));
+
         $admin = $this->createAdmin();
         $operator = $this->createOperator();
         $election = $this->createWideElection();
@@ -124,36 +125,24 @@ class ElectionSessionManagementTest extends TestCase
         $class1 = ClassRoom::factory()->create();
         $class2 = ClassRoom::factory()->create();
 
-        // ✅ Lock base time SEKALI — pakai copy() untuk hindari drift
-        $baseTime    = now()->addMinutes(60);
-        $dateString  = $baseTime->format('Y-m-d');
-        $startString = $baseTime->format('H:i');
-        $endString   = $baseTime->copy()->addHour()->format('H:i');
-
-        // Existing session — operator yang sama, waktu sama
+        // Existing session 11:00 - 12:00
         ElectionSession::create([
             'election_id'   => $election->id,
             'class_id'      => $class1->id,
             'operator_id'   => $operator->id,
-            'tanggal'       => $dateString,
-            'waktu_mulai'   => $startString,
-            'waktu_selesai' => $endString,
+            'tanggal'       => now()->toDateString(),
+            'waktu_mulai'   => '11:00',
+            'waktu_selesai' => '12:00',
             'status'        => SessionStatus::SCHEDULED,
         ]);
 
-        // ✅ Safety check — tanpa 'tanggal' (cast-nya date → 00:00:00)
-        $this->assertDatabaseHas('election_sessions', [
-            'operator_id' => $operator->id,
-            'waktu_mulai' => $startString,
-        ]);
-
-        // Request baru dengan waktu SAMA PERSIS → harus konflik
+        // New session 11:30 - 12:30 → harus konflik
         $response = $this->actingAs($admin)->post(route('admin.sessions.store'), [
             'election_id'   => $election->id,
             'class_id'      => $class2->id,
-            'tanggal'       => $dateString,
-            'waktu_mulai'   => $startString,
-            'waktu_selesai' => $endString,
+            'tanggal'       => now()->toDateString(),
+            'waktu_mulai'   => '11:30',
+            'waktu_selesai' => '12:30',
             'operator_id'   => $operator->id,
         ]);
 
@@ -190,31 +179,42 @@ class ElectionSessionManagementTest extends TestCase
 
     public function test_admin_can_update_scheduled_session()
     {
+        $this->travelTo(now()->setTime(10, 0));
+
         $admin = $this->createAdmin();
-        $election = $this->createWideElection();
+
+        $election = Election::factory()->create([
+            'status'   => ElectionStatus::ACTIVE,
+            'start_at' => now()->setTime(8, 0),
+            'end_at'   => now()->setTime(16, 0),
+        ]);
+
+        $class = ClassRoom::factory()->create();
 
         $session = ElectionSession::factory()->create([
             'election_id'   => $election->id,
+            'class_id'      => $class->id,
             'status'        => SessionStatus::SCHEDULED,
             'tanggal'       => now()->toDateString(),
-            'waktu_mulai'   => now()->addMinutes(30)->format('H:i'),
-            'waktu_selesai' => now()->addMinutes(50)->format('H:i'),
+            'waktu_mulai'   => '11:00',
+            'waktu_selesai' => '11:30',
         ]);
 
-        $newStart = now()->addMinutes(60);
-        $newEnd   = now()->addMinutes(80);
-
         $response = $this->actingAs($admin)->put(route('admin.sessions.update', $session), [
-            'class_id'      => $session->class_id,
-            'tanggal'       => $newStart->toDateString(),
-            'waktu_mulai'   => $newStart->format('H:i'),
-            'waktu_selesai' => $newEnd->format('H:i'),
+            'class_id'      => $class->id,
+            'tanggal'       => now()->toDateString(),
+            'waktu_mulai'   => '12:00',
+            'waktu_selesai' => '12:30',
         ]);
 
         $response->assertRedirect();
 
         $session->refresh();
-        $this->assertEquals($newStart->format('H:i'), $session->waktu_mulai);
+
+        // ✅ Fix: DB menyimpan format 'HH:MM:SS'
+        $this->assertEquals('12:00:00', $session->waktu_mulai);
+        $this->assertEquals('12:30:00', $session->waktu_selesai);
+
         $this->assertDatabaseHas('activity_logs', ['action' => 'session.updated']);
     }
 

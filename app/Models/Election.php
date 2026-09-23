@@ -221,6 +221,9 @@ class Election extends Model
 
         $this->update(['status' => ElectionStatus::ACTIVE]);
 
+        \Illuminate\Support\Facades\Cache::forget('home.active_election');
+        \Illuminate\Support\Facades\Cache::forget('admin.live_stats');
+
         return true;
     }
 
@@ -241,6 +244,9 @@ class Election extends Model
         }
 
         $this->update(['status' => ElectionStatus::CLOSED]);
+
+        \Illuminate\Support\Facades\Cache::forget('home.active_election');
+        \Illuminate\Support\Facades\Cache::forget('admin.live_stats');
 
         return true;
     }

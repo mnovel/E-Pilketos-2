@@ -127,6 +127,10 @@ class ScanController extends Controller
             'scanned_at'        => now(),
         ]);
 
+        // ✅ Clear cache setelah check-in berhasil
+        Cache::forget('operator.dashboard');
+        Cache::forget('admin.live_stats');
+
         // ==============================
         // 6. CACHE UNTUK POLLING DEVICE
         // ==============================
@@ -143,12 +147,12 @@ class ScanController extends Controller
             'subject_type' => Voter::class,
             'subject_id'   => $voter->id,
             'meta'         => [
-                'election_id'  => $election->id,
-                'election'     => $election->title,
-                'session_id'   => $session->id,
-                'kelas'        => $user->classRoom?->name,
-                'nama'         => $user->name,
-                'device'       => $device->device_label,
+                'election_id' => $election->id,
+                'election'    => $election->title,
+                'session_id'  => $session->id,
+                'kelas'       => $user->classRoom?->name,
+                'nama'        => $user->name,
+                'device'      => $device->device_label,
             ],
         ]);
 
@@ -264,7 +268,6 @@ class ScanController extends Controller
         Log::info("Voting device assigned: voter #{$voter->id} → device #{$device->id}");
 
         // ✅ Activity Log — voter berhasil scan QR voting
-        // (device sudah di-assign, voter siap memilih di bilik)
         ActivityLog::log('voter.voting_scanned', [
             'subject_type' => Voter::class,
             'subject_id'   => $voter->id,

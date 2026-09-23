@@ -5,8 +5,10 @@ namespace Tests\Feature\Auth;
 use App\Enums\VoterStatus;
 use App\Models\ClassRoom;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -17,6 +19,14 @@ class RegisterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // ✅ Skip CSRF
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
+        // ✅ Clear rate limiter
+        RateLimiter::clear('register');
+
+        // ✅ Fake storage biar tidak benar-benar upload
         Storage::fake('public');
     }
 
@@ -25,13 +35,13 @@ class RegisterTest extends TestCase
         $class = ClassRoom::factory()->create();
 
         $response = $this->post('/register', [
-            'nis'           => '901001',
-            'name'          => 'Ahmad Fauzi',
-            'class_id'      => $class->id,
-            'email'         => 'ahmad@test.com',
-            'password'      => 'password123',
+            'nis'                   => '901001',
+            'name'                  => 'Ahmad Fauzi',
+            'class_id'              => $class->id,
+            'email'                 => 'ahmad@test.com',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
-            'kartu_pelajar' => UploadedFile::fake()->image('kartu.jpg', 800, 600),
+            'kartu_pelajar'         => UploadedFile::fake()->image('kartu.jpg', 800, 600),
         ]);
 
         $response->assertRedirect(route('register.success'));
@@ -51,20 +61,20 @@ class RegisterTest extends TestCase
         $class = ClassRoom::factory()->create();
 
         $this->post('/register', [
-            'nis'           => '901001',
-            'name'          => 'Ahmad Fauzi',
-            'class_id'      => $class->id,
-            'email'         => 'ahmad@test.com',
-            'password'      => 'password123',
+            'nis'                   => '901001',
+            'name'                  => 'Ahmad Fauzi',
+            'class_id'              => $class->id,
+            'email'                 => 'ahmad@test.com',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
-            'kartu_pelajar' => UploadedFile::fake()->image('kartu.jpg'),
+            'kartu_pelajar'         => UploadedFile::fake()->image('kartu.jpg'),
         ]);
 
         $user = User::where('nis', '901001')->first();
 
         $this->assertDatabaseHas('activity_logs', [
-            'action'   => 'voter.register',
-            'user_id'  => $user->id,
+            'action'  => 'voter.register',
+            'user_id' => $user->id,
         ]);
     }
 
@@ -74,13 +84,13 @@ class RegisterTest extends TestCase
         User::factory()->create(['nis' => '901001']);
 
         $response = $this->post('/register', [
-            'nis'           => '901001',
-            'name'          => 'Ahmad Fauzi',
-            'class_id'      => $class->id,
-            'email'         => 'ahmad@test.com',
-            'password'      => 'password123',
+            'nis'                   => '901001',
+            'name'                  => 'Ahmad Fauzi',
+            'class_id'              => $class->id,
+            'email'                 => 'ahmad@test.com',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
-            'kartu_pelajar' => UploadedFile::fake()->image('kartu.jpg'),
+            'kartu_pelajar'         => UploadedFile::fake()->image('kartu.jpg'),
         ]);
 
         $response->assertSessionHasErrors('nis');
@@ -91,11 +101,11 @@ class RegisterTest extends TestCase
         $class = ClassRoom::factory()->create();
 
         $response = $this->post('/register', [
-            'nis'           => '901001',
-            'name'          => 'Ahmad Fauzi',
-            'class_id'      => $class->id,
-            'email'         => 'ahmad@test.com',
-            'password'      => 'password123',
+            'nis'                   => '901001',
+            'name'                  => 'Ahmad Fauzi',
+            'class_id'              => $class->id,
+            'email'                 => 'ahmad@test.com',
+            'password'              => 'password123',
             'password_confirmation' => 'password123',
         ]);
 

@@ -239,6 +239,9 @@ class VotingDeviceController extends Controller
                     'voted_at'  => now(),
                 ]);
 
+                Cache::forget('operator.dashboard');
+                Cache::forget('admin.live_stats');
+
                 // Reset device
                 $device->update([
                     'status'            => DeviceStatus::IDLE,

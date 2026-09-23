@@ -3,7 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\ClassRoom;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,7 +14,7 @@ class ClassRoomManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware(VerifyCsrfToken::class);
+        $this->withoutMiddleware(PreventRequestForgery::class);
     }
 
     // ==========================================
@@ -127,8 +127,6 @@ class ClassRoomManagementTest extends TestCase
     {
         $admin = $this->createAdmin();
         $class = ClassRoom::factory()->create();
-
-        // Bikin 1 user di kelas ini
         $this->createVoter($class);
 
         $response = $this->actingAs($admin)

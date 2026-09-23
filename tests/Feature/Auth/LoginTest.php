@@ -3,15 +3,26 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\UserRole;
-use App\Enums\VoterStatus;
-use App\Models\ActivityLog;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class LoginTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // ✅ Skip CSRF
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
+        // ✅ Clear rate limiter biar tidak kena throttle antar test
+        RateLimiter::clear('login');
+    }
 
     public function test_admin_can_login_and_redirected_to_admin_dashboard()
     {

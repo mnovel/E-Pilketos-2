@@ -4,14 +4,30 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\ElectionStatus;
 use App\Models\Candidate;
+use App\Models\ClassRoom;
 use App\Models\Election;
+use App\Models\ElectionSession;
 use App\Models\Vote;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ElectionLifecycleTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // ✅ Skip CSRF untuk test HTTP
+        $this->withoutMiddleware(PreventRequestForgery::class);
+    }
+
+    // ==========================================
+    // CREATE
+    // ==========================================
 
     public function test_admin_can_create_election()
     {
@@ -37,6 +53,10 @@ class ElectionLifecycleTest extends TestCase
         ]);
     }
 
+    // ==========================================
+    // AUTO ACTIVATE (model-level)
+    // ==========================================
+
     public function test_election_auto_activates_when_time_comes()
     {
         $election = Election::factory()->draft()->create([
@@ -44,7 +64,6 @@ class ElectionLifecycleTest extends TestCase
             'end_at'   => now()->addHour(),
         ]);
 
-        // Butuh 2 kandidat minimal
         Candidate::factory()->count(2)->create(['election_id' => $election->id]);
 
         $activated = $election->autoActivateIfReady();
@@ -60,7 +79,6 @@ class ElectionLifecycleTest extends TestCase
             'end_at'   => now()->addHour(),
         ]);
 
-        // Cuma 1 kandidat
         Candidate::factory()->create(['election_id' => $election->id]);
 
         $activated = $election->autoActivateIfReady();
@@ -68,6 +86,10 @@ class ElectionLifecycleTest extends TestCase
         $this->assertFalse($activated);
         $this->assertEquals(ElectionStatus::DRAFT, $election->fresh()->status);
     }
+
+    // ==========================================
+    // CLOSE
+    // ==========================================
 
     public function test_admin_can_close_active_election()
     {
@@ -85,13 +107,29 @@ class ElectionLifecycleTest extends TestCase
         ]);
     }
 
+    // ==========================================
+    // PUBLISH
+    // ==========================================
+
     public function test_admin_can_publish_closed_election_with_votes()
     {
         $admin = $this->createAdmin();
         $election = Election::factory()->closed()->create();
 
-        // Bikin minimal 1 vote
-        Vote::factory()->create(['election_id' => $election->id]);
+        // Bikin candidate + class + session untuk vote
+        $candidate = Candidate::factory()->create(['election_id' => $election->id]);
+        $class = ClassRoom::factory()->create();
+        $session = ElectionSession::factory()->create([
+            'election_id' => $election->id,
+            'class_id'    => $class->id,
+        ]);
+
+        Vote::create([
+            'election_id'  => $election->id,
+            'session_id'   => $session->id,
+            'candidate_id' => $candidate->id,
+            'hash'         => hash('sha256', Str::uuid()),
+        ]);
 
         $response = $this->actingAs($admin)
             ->post(route('admin.elections.publish', $election));
@@ -118,6 +156,10 @@ class ElectionLifecycleTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertEquals(ElectionStatus::CLOSED, $election->fresh()->status);
     }
+
+    // ==========================================
+    // DELETE
+    // ==========================================
 
     public function test_cannot_delete_active_election()
     {

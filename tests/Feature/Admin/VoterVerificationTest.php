@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -11,10 +13,16 @@ class VoterVerificationTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(PreventRequestForgery::class);
+    }
+
     public function test_admin_can_approve_pending_voter()
     {
         $admin = $this->createAdmin();
-        $voter = User::factory()->pending()->create(['role' => \App\Enums\UserRole::VOTER]);
+        $voter = User::factory()->pending()->create(['role' => UserRole::VOTER]);
         $voter->assignRole('voter');
 
         $response = $this->actingAs($admin)
@@ -35,7 +43,7 @@ class VoterVerificationTest extends TestCase
     public function test_admin_can_reject_voter_with_reason()
     {
         $admin = $this->createAdmin();
-        $voter = User::factory()->pending()->create(['role' => \App\Enums\UserRole::VOTER]);
+        $voter = User::factory()->pending()->create(['role' => UserRole::VOTER]);
         $voter->assignRole('voter');
 
         $response = $this->actingAs($admin)
@@ -58,7 +66,7 @@ class VoterVerificationTest extends TestCase
     public function test_reject_requires_alasan()
     {
         $admin = $this->createAdmin();
-        $voter = User::factory()->pending()->create(['role' => \App\Enums\UserRole::VOTER]);
+        $voter = User::factory()->pending()->create(['role' => UserRole::VOTER]);
         $voter->assignRole('voter');
 
         $response = $this->actingAs($admin)
@@ -71,7 +79,7 @@ class VoterVerificationTest extends TestCase
     {
         $admin = $this->createAdmin();
         $voters = User::factory()->pending()->count(5)->create([
-            'role' => \App\Enums\UserRole::VOTER,
+            'role' => UserRole::VOTER,
         ]);
         $voters->each(fn($v) => $v->assignRole('voter'));
 
@@ -82,7 +90,7 @@ class VoterVerificationTest extends TestCase
 
         $response->assertRedirect();
 
-        $verifiedCount = User::where('role', \App\Enums\UserRole::VOTER)
+        $verifiedCount = User::where('role', UserRole::VOTER)
             ->where('status', VoterStatus::VERIFIED)
             ->count();
 
@@ -96,7 +104,7 @@ class VoterVerificationTest extends TestCase
     public function test_non_admin_cannot_approve_voter()
     {
         $operator = $this->createOperator();
-        $voter = User::factory()->pending()->create(['role' => \App\Enums\UserRole::VOTER]);
+        $voter = User::factory()->pending()->create(['role' => UserRole::VOTER]);
         $voter->assignRole('voter');
 
         $response = $this->actingAs($operator)

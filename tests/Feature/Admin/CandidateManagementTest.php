@@ -6,7 +6,7 @@ use App\Enums\ElectionStatus;
 use App\Models\Candidate;
 use App\Models\ClassRoom;
 use App\Models\Election;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +19,10 @@ class CandidateManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->withoutMiddleware(VerifyCsrfToken::class);
+
+        // ✅ Laravel 11+ CSRF middleware
+        $this->withoutMiddleware(PreventRequestForgery::class);
+
         Storage::fake('public');
     }
 
@@ -180,9 +183,7 @@ class CandidateManagementTest extends TestCase
             ->delete(route('admin.candidates.destroy', $candidate));
 
         $response->assertRedirect();
-
         $this->assertSoftDeleted('candidates', ['id' => $candidateId]);
-
         $this->assertDatabaseHas('activity_logs', ['action' => 'candidate.deleted']);
     }
 
@@ -208,10 +209,7 @@ class CandidateManagementTest extends TestCase
         $this->actingAs($admin)
             ->delete(route('admin.candidates.destroy', $candidate));
 
-        $this->assertDatabaseHas('candidates', [
-            'id' => $candidate->id,
-        ]);
-
+        $this->assertDatabaseHas('candidates', ['id' => $candidate->id]);
         $this->assertNotNull($candidate->fresh()->deleted_at);
     }
 

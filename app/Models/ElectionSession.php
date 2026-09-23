@@ -184,6 +184,9 @@ class ElectionSession extends Model
             'activated_at' => now(),
         ]);
 
+        Cache::forget('operator.dashboard');
+        Cache::forget('admin.live_stats');
+
         return true;
     }
 
@@ -199,6 +202,9 @@ class ElectionSession extends Model
                 'status'    => SessionStatus::CLOSED,
                 'closed_at' => now(),
             ]);
+
+            Cache::forget('operator.dashboard');
+            Cache::forget('admin.live_stats');
             return true;
         }
         return false;
