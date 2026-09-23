@@ -68,7 +68,8 @@
 
                     {{-- Pemilih --}}
                     <li class="sidebar-menu-item">
-                        <a href="{{ route('admin.voters.index') }}" class="sidebar-menu-link {{ request()->routeIs('admin.voters.*') ? 'active' : '' }}" title="Pemilih">
+                        <a href="{{ route('admin.voters.index') }}"
+                            class="sidebar-menu-link {{ request()->routeIs('admin.voters.*') && !request()->routeIs('admin.voters.export.*') ? 'active' : '' }}" title="Pemilih">
                             <i class="bi bi-people-fill"></i>
                             <span>Pemilih</span>
                         </a>
