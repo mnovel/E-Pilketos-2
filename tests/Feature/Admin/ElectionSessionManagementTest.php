@@ -211,9 +211,9 @@ class ElectionSessionManagementTest extends TestCase
 
         $session->refresh();
 
-        // ✅ Fix: DB menyimpan format 'HH:MM:SS'
-        $this->assertEquals('12:00:00', $session->waktu_mulai);
-        $this->assertEquals('12:30:00', $session->waktu_selesai);
+        // ✅ Kompatibel MySQL (12:00:00) & MariaDB (12:00)
+        $this->assertStringStartsWith('12:00', $session->waktu_mulai);
+        $this->assertStringStartsWith('12:30', $session->waktu_selesai);
 
         $this->assertDatabaseHas('activity_logs', ['action' => 'session.updated']);
     }
