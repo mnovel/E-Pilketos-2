@@ -58,15 +58,15 @@
                         <div class="mb-3">
                             <label for="status" class="form-label">Filter Status</label>
                             <select name="status" id="status" class="form-select">
-                                <option value="verified">
+                                <option value="verified" data-label="Hanya Terverifikasi">
                                     Hanya Terverifikasi
                                 </option>
-                                <option value="all">
+                                <option value="all" data-label="Semua Status">
                                     Semua Status
                                 </option>
                             </select>
                             <small class="text-muted">
-                                Disarankan hanya cetak yang sudah terverifikasi.
+                                Count menyesuaikan dengan kelas yang dipilih.
                             </small>
                         </div>
 
@@ -103,6 +103,12 @@
             const previewBox = document.getElementById('previewBox');
             const previewCount = document.getElementById('previewCount');
 
+            // ✅ Label hardcoded
+            const labels = {
+                'verified': 'Hanya Terverifikasi',
+                'all': 'Semua Status',
+            };
+
             async function updatePreview() {
                 if (!classSelect.value) {
                     previewBox.style.display = 'none';
@@ -128,8 +134,20 @@
                     if (!response.ok) return;
 
                     const data = await response.json();
+
+                    // Update preview count
                     previewCount.textContent = data.count;
                     previewBox.style.display = 'block';
+
+                    // ✅ Update dropdown count (dynamic, sesuai kelas)
+                    if (data.counts) {
+                        Object.keys(labels).forEach(key => {
+                            const opt = statusSelect.querySelector(`option[value="${key}"]`);
+                            if (opt) {
+                                opt.textContent = `${labels[key]} (${data.counts[key] ?? 0})`;
+                            }
+                        });
+                    }
                 } catch (e) {
                     console.error('Preview error:', e);
                 }

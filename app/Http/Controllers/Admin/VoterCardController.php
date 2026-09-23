@@ -28,6 +28,7 @@ class VoterCardController extends Controller
             ->orderBy('name')
             ->get();
 
+        // ✅ Count awal (sebelum filter)
         $counts = [
             'all'      => User::where('role', UserRole::VOTER)->count(),
             'verified' => User::where('role', UserRole::VOTER)->where('status', VoterStatus::VERIFIED)->count(),
@@ -37,7 +38,7 @@ class VoterCardController extends Controller
     }
 
     /**
-     * Preview count voter yang akan dicetak.
+     * Preview — hitung voter + count per status (difilter kelas).
      */
     public function preview(Request $request)
     {
@@ -46,10 +47,20 @@ class VoterCardController extends Controller
             'status'   => ['nullable', 'in:all,verified'],
         ]);
 
+        // Count voter yang akan dicetak (sesuai filter)
         $count = $this->buildQuery($validated)->count();
 
+        // ✅ Count per status (difilter kelas yang sama)
+        $classId = $validated['class_id'];
+
+        $counts = [
+            'all'      => $this->baseQuery($classId)->count(),
+            'verified' => $this->baseQuery($classId)->where('status', VoterStatus::VERIFIED)->count(),
+        ];
+
         return response()->json([
-            'count' => $count,
+            'count'  => $count,
+            'counts' => $counts,
         ]);
     }
 
@@ -83,11 +94,9 @@ class VoterCardController extends Controller
             $qrGenerator = QrCode::size(300)->margin(1)->errorCorrection('M');
 
             if ($usePng) {
-                // Pakai PNG
                 $qrImage = base64_encode($qrGenerator->format('png')->generate($qrContent));
                 $qrType  = 'png';
             } else {
-                // Fallback ke SVG
                 $qrImage = base64_encode($qrGenerator->format('svg')->generate($qrContent));
                 $qrType  = 'svg';
             }
@@ -111,7 +120,6 @@ class VoterCardController extends Controller
 
         $pdf->setPaper('a4', 'portrait');
 
-        // Nama file
         $filename = 'kartu-voter-'
             . Str::slug($class->name)
             . '-'
@@ -134,12 +142,20 @@ class VoterCardController extends Controller
     }
 
     /**
-     * Build query dari filter.
+     * Base query — hanya role voter, optional filter by class.
+     */
+    private function baseQuery(int $classId)
+    {
+        return User::where('role', UserRole::VOTER)
+            ->where('class_id', $classId);
+    }
+
+    /**
+     * Build query dari filter lengkap (class + status).
      */
     private function buildQuery(array $validated)
     {
-        $query = User::where('role', UserRole::VOTER)
-            ->where('class_id', $validated['class_id']);
+        $query = $this->baseQuery($validated['class_id']);
 
         $status = $validated['status'] ?? 'verified';
         if ($status === 'verified') {
