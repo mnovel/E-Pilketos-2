@@ -13,10 +13,13 @@ use App\Http\Controllers\Admin\ElectionSessionController;
 use App\Http\Controllers\Admin\OperatorController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\ResultController;
+use App\Http\Controllers\Admin\VoterExportController;
 use App\Http\Controllers\Admin\VoterController;
 use App\Http\Controllers\Admin\VoterImportController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\DeviceLogController;
+use App\Http\Controllers\Admin\VoterCardController;
+
 
 // ============================================
 // AUTH CONTROLLERS
@@ -124,6 +127,19 @@ Route::middleware('auth')->group(function () {
             // Dashboard
             Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
             Route::get('/dashboard/live-stats', [AdminDashboard::class, 'liveStats'])->name('dashboard.live-stats');
+
+            Route::prefix('voters/export')->name('voters.export.')->group(function () {
+                Route::get('/', [VoterExportController::class, 'index'])->name('index');
+                Route::post('/preview', [VoterExportController::class, 'preview'])->name('preview');
+                Route::post('/download', [VoterExportController::class, 'export'])->name('download');
+            });
+
+            // Voter Cards — cetak kartu PDF
+            Route::prefix('voter-cards')->name('voter-cards.')->group(function () {
+                Route::get('/', [VoterCardController::class, 'index'])->name('index');
+                Route::post('/preview', [VoterCardController::class, 'preview'])->name('preview');
+                Route::post('/download', [VoterCardController::class, 'download'])->name('download');
+            });
 
             // ==== Voters ====
             // Import (harus sebelum resource voters/{voter})

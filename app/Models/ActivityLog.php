@@ -88,6 +88,8 @@ class ActivityLog extends Model
             'voter.password_reset'    => 'Reset Password Voter',
             'voter.password_generated' => 'Generate Password Voter',
             'voter.voting_scanned'    => 'Scan QR Voting',
+            'voter.credentials_exported' => 'Export Credentials Voter',
+            'voter.cards_printed'     => 'Cetak Kartu Voter',
             'checkin.success'         => 'Check-in',
 
             // ============ ELECTION ============

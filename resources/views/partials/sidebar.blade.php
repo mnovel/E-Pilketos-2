@@ -65,11 +65,28 @@
                             <span>Operator</span>
                         </a>
                     </li>
+
                     {{-- Pemilih --}}
                     <li class="sidebar-menu-item">
                         <a href="{{ route('admin.voters.index') }}" class="sidebar-menu-link {{ request()->routeIs('admin.voters.*') ? 'active' : '' }}" title="Pemilih">
                             <i class="bi bi-people-fill"></i>
                             <span>Pemilih</span>
+                        </a>
+                    </li>
+
+                    {{-- Export Voter --}}
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('admin.voters.export.index') }}" class="sidebar-menu-link {{ request()->routeIs('admin.voters.export.*') ? 'active' : '' }}" title="Export Voter">
+                            <i class="bi bi-download"></i>
+                            <span>Export Voter</span>
+                        </a>
+                    </li>
+
+                    {{-- Cetak Kartu Voter --}}
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('admin.voter-cards.index') }}" class="sidebar-menu-link {{ request()->routeIs('admin.voter-cards.*') ? 'active' : '' }}" title="Cetak Kartu Voter">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Cetak Kartu</span>
                         </a>
                     </li>
 
