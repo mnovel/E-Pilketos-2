@@ -57,6 +57,19 @@ use App\Http\Controllers\Voter\ScanController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+Route::get('/debug-ip', function () {
+    return [
+        'ip'      => request()->ip(),
+        'ips'     => request()->ips(),
+        'is_secure' => request()->isSecure(),
+        'headers' => [
+            'x-forwarded-for'   => request()->header('X-Forwarded-For'),
+            'x-forwarded-proto' => request()->header('X-Forwarded-Proto'),
+            'x-real-ip'         => request()->header('X-Real-IP'),
+        ],
+    ];
+});
+
 // ✅ Rate limit cek-status: 10x/menit per IP
 Route::prefix('cek-status')->name('cek-status.')->group(function () {
     Route::get('/', [CheckStatusController::class, 'index'])->name('index');
@@ -211,7 +224,7 @@ Route::middleware('auth')->group(function () {
             ->group(function () {
                 Route::get('/', [CheckinDeviceController::class, 'index'])->name('index');
                 Route::get('/status', [CheckinDeviceController::class, 'status'])
-                    ->middleware('throttle:120,1')  // ✅ max 2x/detik (polling normal ~0.5x/detik)
+                    ->middleware('throttle:120,1')
                     ->name('status');
                 Route::post('/close', [CheckinDeviceController::class, 'close'])->name('close');
                 Route::post('/reopen', [CheckinDeviceController::class, 'reopen'])->name('reopen');
@@ -225,7 +238,7 @@ Route::middleware('auth')->group(function () {
                     ->middleware('throttle:120,1')  // ✅
                     ->name('status');
                 Route::post('/submit', [VotingDeviceController::class, 'submit'])
-                    ->middleware('throttle:10,1')   // ✅ max 10 vote submit/menit (anti-abuse)
+                    ->middleware('throttle:10,1')
                     ->name('submit');
                 Route::post('/reset', [VotingDeviceController::class, 'reset'])->name('reset');
                 Route::post('/close', [VotingDeviceController::class, 'close'])->name('close');
