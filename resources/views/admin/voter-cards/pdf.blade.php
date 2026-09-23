@@ -100,6 +100,11 @@
             height: 22mm;
         }
 
+        .qr-section svg {
+            width: 22mm;
+            height: 22mm;
+        }
+
         .field-label {
             font-size: 6.5px;
             color: #666;
@@ -166,7 +171,13 @@
                                 </div>
 
                                 <div class="qr-section">
-                                    <img src="data:image/png;base64,{{ $card['qr'] }}" alt="QR">
+                                    @if ($card['qr_type'] === 'png')
+                                        {{-- PNG — pakai imagick/gd --}}
+                                        <img src="data:image/png;base64,{{ $card['qr'] }}" alt="QR">
+                                    @else
+                                        {{-- SVG — render langsung --}}
+                                        {!! base64_decode($card['qr']) !!}
+                                    @endif
                                     <div class="token">{{ $card['token'] }}</div>
                                 </div>
                             </div>

@@ -59,10 +59,10 @@
                             <label for="status" class="form-label">Filter Status</label>
                             <select name="status" id="status" class="form-select">
                                 <option value="verified">
-                                    Hanya Terverifikasi ({{ $counts['verified'] }})
+                                    Hanya Terverifikasi
                                 </option>
                                 <option value="all">
-                                    Semua Status ({{ $counts['all'] }})
+                                    Semua Status
                                 </option>
                             </select>
                             <small class="text-muted">
@@ -111,24 +111,28 @@
 
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-                const response = await fetch('{{ route('admin.voter-cards.preview') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        class_id: classSelect.value,
-                        status: statusSelect.value,
-                    }),
-                });
+                try {
+                    const response = await fetch('{{ route('admin.voter-cards.preview') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            class_id: classSelect.value,
+                            status: statusSelect.value,
+                        }),
+                    });
 
-                if (!response.ok) return;
+                    if (!response.ok) return;
 
-                const data = await response.json();
-                previewCount.textContent = data.count;
-                previewBox.style.display = 'block';
+                    const data = await response.json();
+                    previewCount.textContent = data.count;
+                    previewBox.style.display = 'block';
+                } catch (e) {
+                    console.error('Preview error:', e);
+                }
             }
 
             classSelect.addEventListener('change', updatePreview);

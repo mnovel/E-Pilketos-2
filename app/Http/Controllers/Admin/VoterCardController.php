@@ -73,27 +73,40 @@ class VoterCardController extends Controller
             abort(404, 'Tidak ada voter di kelas ini.');
         }
 
+        // ✅ Cek apakah imagick / gd tersedia untuk PNG
+        $usePng = extension_loaded('imagick') || extension_loaded('gd');
+
         // Generate QR untuk setiap voter
-        $cards = $voters->map(function (User $voter) {
+        $cards = $voters->map(function (User $voter) use ($usePng) {
+            $qrContent = $voter->qr_token ?? $voter->nis ?? '-';
+
+            $qrGenerator = QrCode::size(300)->margin(1)->errorCorrection('M');
+
+            if ($usePng) {
+                // Pakai PNG
+                $qrImage = base64_encode($qrGenerator->format('png')->generate($qrContent));
+                $qrType  = 'png';
+            } else {
+                // Fallback ke SVG
+                $qrImage = base64_encode($qrGenerator->format('svg')->generate($qrContent));
+                $qrType  = 'svg';
+            }
+
             return [
-                'nama'  => $voter->name,
-                'nis'   => $voter->nis ?? '-',
-                'kelas' => $voter->classRoom?->name ?? '-',
-                'token' => $voter->qr_token ?? '-',
-                'qr'    => base64_encode(
-                    QrCode::format('png')
-                        ->size(300)
-                        ->margin(1)
-                        ->errorCorrection('M')
-                        ->generate($voter->qr_token ?? $voter->nis ?? '-')
-                ),
+                'nama'    => $voter->name,
+                'nis'     => $voter->nis ?? '-',
+                'kelas'   => $voter->classRoom?->name ?? '-',
+                'token'   => $qrContent,
+                'qr'      => $qrImage,
+                'qr_type' => $qrType,
             ];
         });
 
         $pdf = Pdf::loadView('admin.voter-cards.pdf', [
-            'class'  => $class,
-            'cards'  => $cards,
-            'school' => 'SMA Negeri 1 Kota Pasuruan',
+            'class'   => $class,
+            'cards'   => $cards,
+            'school'  => 'SMA Negeri 1 Kota Pasuruan',
+            'use_png' => $usePng,
         ]);
 
         $pdf->setPaper('a4', 'portrait');
@@ -105,7 +118,7 @@ class VoterCardController extends Controller
             . now()->format('Ymd-His')
             . '.pdf';
 
-        Log::info("Voter cards generated: {$voters->count()} cards for {$class->name}");
+        Log::info("Voter cards generated: {$voters->count()} cards for {$class->name} (format: " . ($usePng ? 'PNG' : 'SVG') . ")");
 
         ActivityLog::log('voter.cards_printed', [
             'meta' => [
@@ -113,6 +126,7 @@ class VoterCardController extends Controller
                 'class'    => $class->name,
                 'total'    => $voters->count(),
                 'filename' => $filename,
+                'format'   => $usePng ? 'png' : 'svg',
             ],
         ]);
 
