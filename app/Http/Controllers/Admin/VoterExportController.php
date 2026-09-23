@@ -29,6 +29,7 @@ class VoterExportController extends Controller
             ->orderBy('name')
             ->get();
 
+        // ✅ Count awal (sebelum filter) — hitung semua voter
         $counts = [
             'all'      => User::where('role', UserRole::VOTER)->count(),
             'pending'  => User::where('role', UserRole::VOTER)->where('status', VoterStatus::PENDING)->count(),
@@ -40,7 +41,7 @@ class VoterExportController extends Controller
     }
 
     /**
-     * Preview — lihat berapa voter yang akan di-export.
+     * Preview — hitung voter yang akan di-export + count per status.
      */
     public function preview(Request $request)
     {
@@ -50,12 +51,23 @@ class VoterExportController extends Controller
             'reset_password' => ['nullable', 'boolean'],
         ]);
 
-        $query = $this->buildQuery($validated);
-        $count = $query->count();
+        // Count voter yang akan di-export (sesuai filter)
+        $count = $this->buildQuery($validated)->count();
+
+        // ✅ Count per status (difilter dengan class yang sama)
+        $classId = $validated['class_id'] ?? null;
+
+        $counts = [
+            'all'      => $this->baseQuery($classId)->count(),
+            'pending'  => $this->baseQuery($classId)->where('status', VoterStatus::PENDING)->count(),
+            'verified' => $this->baseQuery($classId)->where('status', VoterStatus::VERIFIED)->count(),
+            'rejected' => $this->baseQuery($classId)->where('status', VoterStatus::REJECTED)->count(),
+        ];
 
         return response()->json([
-            'count' => $count,
-            'reset' => !empty($validated['reset_password']),
+            'count'  => $count,
+            'reset'  => !empty($validated['reset_password']),
+            'counts' => $counts,
         ]);
     }
 
@@ -78,7 +90,7 @@ class VoterExportController extends Controller
 
         $plainPasswords = [];
 
-        // ✅ Reset password massal (kalau dipilih)
+        // Reset password massal (kalau dipilih)
         if (!empty($validated['reset_password'])) {
             foreach ($voters as $voter) {
                 $newPassword = Str::password(8, symbols: false);
@@ -115,15 +127,25 @@ class VoterExportController extends Controller
     }
 
     /**
-     * Build query dari filter.
+     * Base query — hanya role voter, optional filter by class.
      */
-    private function buildQuery(array $validated)
+    private function baseQuery(?int $classId = null)
     {
         $query = User::where('role', UserRole::VOTER);
 
-        if (!empty($validated['class_id'])) {
-            $query->where('class_id', $validated['class_id']);
+        if ($classId) {
+            $query->where('class_id', $classId);
         }
+
+        return $query;
+    }
+
+    /**
+     * Build query dari filter lengkap (class + status).
+     */
+    private function buildQuery(array $validated)
+    {
+        $query = $this->baseQuery($validated['class_id'] ?? null);
 
         $status = $validated['status'] ?? 'all';
         if ($status !== 'all') {

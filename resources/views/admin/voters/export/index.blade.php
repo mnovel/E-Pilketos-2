@@ -60,11 +60,23 @@
                         <div class="mb-3">
                             <label for="status" class="form-label">Filter Status</label>
                             <select name="status" id="status" class="form-select">
-                                <option value="all">Semua Status ({{ $counts['all'] }})</option>
-                                <option value="pending">Menunggu ({{ $counts['pending'] }})</option>
-                                <option value="verified">Terverifikasi ({{ $counts['verified'] }})</option>
-                                <option value="rejected">Ditolak ({{ $counts['rejected'] }})</option>
+                                {{-- Count akan di-update otomatis via JS --}}
+                                <option value="all" data-label="Semua Status">
+                                    Semua Status ({{ $counts['all'] }})
+                                </option>
+                                <option value="pending" data-label="Menunggu Verifikasi">
+                                    Menunggu Verifikasi ({{ $counts['pending'] }})
+                                </option>
+                                <option value="verified" data-label="Terverifikasi">
+                                    Terverifikasi ({{ $counts['verified'] }})
+                                </option>
+                                <option value="rejected" data-label="Ditolak">
+                                    Ditolak ({{ $counts['rejected'] }})
+                                </option>
                             </select>
+                            <small class="text-muted">
+                                Count menyesuaikan dengan kelas yang dipilih.
+                            </small>
                         </div>
 
                         {{-- Reset Password --}}
@@ -121,31 +133,54 @@
             async function updatePreview() {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-                const response = await fetch('{{ route('admin.voters.export.preview') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        class_id: classSelect.value || null,
-                        status: statusSelect.value || 'all',
-                        reset_password: resetCheckbox.checked ? 1 : 0,
-                    }),
-                });
+                try {
+                    const response = await fetch('{{ route('admin.voters.export.preview') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            class_id: classSelect.value || null,
+                            status: statusSelect.value || 'all',
+                            reset_password: resetCheckbox.checked ? 1 : 0,
+                        }),
+                    });
 
-                if (!response.ok) return;
+                    if (!response.ok) return;
 
-                const data = await response.json();
-                previewCount.textContent = data.count;
-                previewReset.textContent = data.reset ? ' (password akan direset)' : '';
-                previewBox.style.display = 'block';
+                    const data = await response.json();
+
+                    // ✅ Update preview count
+                    previewCount.textContent = data.count;
+                    previewReset.textContent = data.reset ? ' (password akan direset)' : '';
+                    previewBox.style.display = 'block';
+
+                    // ✅ Update dropdown count per status (dynamic, sesuai kelas)
+                    if (data.counts) {
+                        const options = statusSelect.querySelectorAll('option');
+                        options.forEach(opt => {
+                            const key = opt.value;
+                            const baseLabel = opt.dataset.label || opt.textContent.split(' (')[0];
+
+                            if (data.counts[key] !== undefined) {
+                                opt.textContent = `${baseLabel} (${data.counts[key]})`;
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.error('Preview error:', e);
+                }
             }
 
+            // Trigger saat filter berubah
             classSelect.addEventListener('change', updatePreview);
             statusSelect.addEventListener('change', updatePreview);
             resetCheckbox.addEventListener('change', updatePreview);
+
+            // Load pertama
+            updatePreview();
         });
     </script>
 @endpush
