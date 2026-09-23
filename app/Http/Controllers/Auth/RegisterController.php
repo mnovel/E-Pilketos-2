@@ -35,14 +35,14 @@ class RegisterController extends Controller
             'class_id'      => ['required', 'exists:classes,id'],
             'email'         => ['required', 'email', 'max:255', 'unique:users,email'],
             'password'      => ['required', 'confirmed', Rules\Password::defaults()],
-            'kartu_pelajar' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'kartu_pelajar' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
         ], [
             'nis.unique'          => 'NIS sudah terdaftar.',
             'class_id.required'   => 'Kelas wajib dipilih.',
             'class_id.exists'     => 'Kelas tidak valid.',
             'email.unique'        => 'Email sudah terdaftar.',
             'kartu_pelajar.image' => 'File harus berupa gambar.',
-            'kartu_pelajar.max'   => 'Ukuran gambar maksimal 2MB.',
+            'kartu_pelajar.max'   => 'Ukuran gambar maksimal 5MB.',
         ]);
 
         // Upload kartu pelajar
