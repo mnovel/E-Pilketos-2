@@ -80,7 +80,7 @@ class ClassRoomController extends Controller
         $class = ClassRoom::create([
             'name'      => strtoupper($validated['name']),
             'tingkat'   => strtoupper($validated['tingkat']),
-            'jurusan'   => $validated['jurusan'] ? strtoupper($validated['jurusan']) : null,
+            'jurusan'   => !empty($validated['jurusan']) ? strtoupper($validated['jurusan']) : null,
             'rombel'    => $validated['rombel'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -144,7 +144,7 @@ class ClassRoomController extends Controller
         $newData = [
             'name'      => strtoupper($validated['name']),
             'tingkat'   => strtoupper($validated['tingkat']),
-            'jurusan'   => $validated['jurusan'] ? strtoupper($validated['jurusan']) : null,
+            'jurusan'   => !empty($validated['jurusan']) ? strtoupper($validated['jurusan']) : null,
             'rombel'    => $validated['rombel'] ?? null,
             'is_active' => $request->boolean('is_active', true),
         ];

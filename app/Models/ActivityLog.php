@@ -38,14 +38,26 @@ class ActivityLog extends Model
 
     /**
      * Helper untuk log activity.
+     *
+     * Priority user_id:
+     * 1. $data['user_id'] (kalau ada — termasuk explicit null untuk system action)
+     * 2. $userId param (kalau bukan null)
+     * 3. auth()->id() (fallback)
      */
     public static function log(
         string $action,
         array $data = [],
         ?int $userId = null
     ): self {
+        // ✅ FIX: cek $data['user_id'] dulu (support explicit null)
+        if (array_key_exists('user_id', $data)) {
+            $finalUserId = $data['user_id'];
+        } else {
+            $finalUserId = $userId ?? auth()->id();
+        }
+
         return self::create([
-            'user_id'      => $userId ?? auth()->id(),
+            'user_id'      => $finalUserId,
             'action'       => $action,
             'subject_type' => $data['subject_type'] ?? null,
             'subject_id'   => $data['subject_id'] ?? null,

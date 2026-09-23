@@ -21,9 +21,6 @@ use Illuminate\View\View;
 
 class ElectionSessionController extends Controller
 {
-    /**
-     * List sesi per election.
-     */
     public function index(Request $request): View|RedirectResponse
     {
         $electionId = $request->input('election_id');
@@ -42,28 +39,24 @@ class ElectionSessionController extends Controller
 
         $election = Election::findOrFail($electionId);
 
-        // ✅ AUTO-ACTIVATE election (draft → active) kalau waktunya tiba
         if ($election->autoActivateIfReady()) {
             return redirect()
                 ->route('admin.sessions.index', ['election_id' => $election->id])
                 ->with('success', 'Pemilihan otomatis diaktifkan karena waktu sudah masuk.');
         }
 
-        // ✅ AUTO-CLOSE election kalau lewat
         if ($election->autoCloseIfEnded()) {
             return redirect()
                 ->route('admin.sessions.index', ['election_id' => $election->id])
                 ->with('warning', 'Waktu pemilihan sudah berakhir.');
         }
 
-        // ✅ AUTO-ACTIVATE sessions
         ElectionSession::where('election_id', $election->id)
             ->where('status', SessionStatus::SCHEDULED)
             ->get()
             ->filter(fn($s) => $s->isWithinTimeWindow() && $election->isActive())
             ->each(fn($s) => $s->autoActivateIfReady());
 
-        // ✅ AUTO-CLOSE sessions
         ElectionSession::where('election_id', $election->id)
             ->whereIn('status', [SessionStatus::ACTIVE, SessionStatus::SCHEDULED])
             ->get()
@@ -83,9 +76,6 @@ class ElectionSessionController extends Controller
         return view('admin.sessions.index', compact('election', 'sessions'));
     }
 
-    /**
-     * Form create.
-     */
     public function create(Request $request): View|RedirectResponse
     {
         $electionId = $request->input('election_id');
@@ -98,7 +88,6 @@ class ElectionSessionController extends Controller
 
         $election = Election::findOrFail($electionId);
 
-        // Validasi status election
         if ($election->isPublished()) {
             return redirect()
                 ->route('admin.sessions.index', ['election_id' => $election->id])
@@ -136,14 +125,10 @@ class ElectionSessionController extends Controller
         return view('admin.sessions.create', compact('election', 'classes', 'operators'));
     }
 
-    /**
-     * Store session.
-     */
     public function store(Request $request): RedirectResponse
     {
         $election = Election::findOrFail($request->input('election_id'));
 
-        // Cek status election
         if (!in_array($election->status, [ElectionStatus::DRAFT, ElectionStatus::ACTIVE])) {
             return back()->with('error', 'Tidak bisa membuat sesi: pemilihan tidak dalam status draft atau aktif.');
         }
@@ -167,7 +152,7 @@ class ElectionSessionController extends Controller
             'waktu_selesai.after'  => 'Waktu selesai harus setelah waktu mulai.',
         ]);
 
-        // ✅ VALIDASI: kombinasi tanggal + jam dalam range election
+        // VALIDASI: kombinasi tanggal + jam dalam range election
         $sessionStart = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_mulai']);
         $sessionEnd   = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_selesai']);
 
@@ -196,14 +181,16 @@ class ElectionSessionController extends Controller
             ]);
         }
 
-        // Validasi: operator bentrok
+        // ✅ Validasi: operator bentrok
         if (!empty($validated['operator_id'])) {
             $conflict = ElectionSession::where('operator_id', $validated['operator_id'])
-                ->where('tanggal', $validated['tanggal'])
+                ->whereDate('tanggal', $validated['tanggal'])
                 ->where('status', '!=', SessionStatus::CLOSED)
                 ->where(function ($q) use ($validated) {
-                    $q->whereBetween('waktu_mulai', [$validated['waktu_mulai'], $validated['waktu_selesai']])
-                        ->orWhereBetween('waktu_selesai', [$validated['waktu_mulai'], $validated['waktu_selesai']]);
+                    // Proper overlap check:
+                    // existing.start < new.end AND existing.end > new.start
+                    $q->where('waktu_mulai', '<', $validated['waktu_selesai'])
+                        ->where('waktu_selesai', '>', $validated['waktu_mulai']);
                 })
                 ->exists();
 
@@ -230,17 +217,16 @@ class ElectionSessionController extends Controller
             Log::info("Session created + {$assignedCount} voters assigned");
         }
 
-        // ✅ Activity Log
         ActivityLog::log('session.created', [
             'subject_type' => ElectionSession::class,
             'subject_id'   => $session->id,
             'meta'         => [
-                'election_id'    => $election->id,
-                'election'       => $election->title,
-                'kelas'          => $session->classRoom?->name,
-                'tanggal'        => $session->tanggal->format('Y-m-d'),
-                'waktu'          => $session->waktu_mulai . ' - ' . $session->waktu_selesai,
-                'operator'       => $session->operator?->name,
+                'election_id'     => $election->id,
+                'election'        => $election->title,
+                'kelas'           => $session->classRoom?->name,
+                'tanggal'         => $session->tanggal->format('Y-m-d'),
+                'waktu'           => $session->waktu_mulai . ' - ' . $session->waktu_selesai,
+                'operator'        => $session->operator?->name,
                 'voters_assigned' => $assignedCount,
             ],
         ]);
@@ -250,35 +236,28 @@ class ElectionSessionController extends Controller
             ->with('success', 'Sesi berhasil dibuat.');
     }
 
-    /**
-     * Show session.
-     */
     public function show(ElectionSession $session): View|RedirectResponse
     {
         $session->load('election', 'operator', 'classRoom');
 
-        // ✅ AUTO-ACTIVATE election (draft → active)
         if ($session->election->autoActivateIfReady()) {
             return redirect()
                 ->route('admin.sessions.show', $session)
                 ->with('success', 'Pemilihan otomatis diaktifkan karena waktu sudah masuk.');
         }
 
-        // ✅ AUTO-CLOSE election
         if ($session->election->autoCloseIfEnded()) {
             return redirect()
                 ->route('admin.sessions.show', $session)
                 ->with('warning', 'Waktu pemilihan sudah berakhir.');
         }
 
-        // ✅ AUTO-ACTIVATE session (scheduled → active)
         if ($session->autoActivateIfReady()) {
             return redirect()
                 ->route('admin.sessions.show', $session)
                 ->with('success', 'Sesi otomatis diaktifkan karena waktu sudah masuk.');
         }
 
-        // ✅ AUTO-CLOSE session
         if ($session->autoCloseAny()) {
             return redirect()
                 ->route('admin.sessions.show', $session)
@@ -299,9 +278,6 @@ class ElectionSessionController extends Controller
         return view('admin.sessions.show', compact('session', 'voters', 'stats'));
     }
 
-    /**
-     * Form edit.
-     */
     public function edit(ElectionSession $session): View|RedirectResponse
     {
         if ($session->status !== SessionStatus::SCHEDULED) {
@@ -337,9 +313,6 @@ class ElectionSessionController extends Controller
         return view('admin.sessions.edit', compact('session', 'classes', 'operators'));
     }
 
-    /**
-     * Update session.
-     */
     public function update(Request $request, ElectionSession $session): RedirectResponse
     {
         if ($session->status !== SessionStatus::SCHEDULED) {
@@ -358,7 +331,6 @@ class ElectionSessionController extends Controller
             'operator_id'   => ['nullable', 'exists:users,id'],
         ]);
 
-        // ✅ VALIDASI: kombinasi tanggal + jam dalam range election
         $sessionStart = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_mulai']);
         $sessionEnd   = Carbon::parse($validated['tanggal'] . ' ' . $validated['waktu_selesai']);
 
@@ -376,7 +348,26 @@ class ElectionSessionController extends Controller
             ]);
         }
 
-        // ✅ Capture perubahan sebelum update
+        // ✅ Validasi: operator bentrok (exclude session ini sendiri)
+        if (!empty($validated['operator_id'])) {
+            $conflict = ElectionSession::where('operator_id', $validated['operator_id'])
+                ->where('id', '!=', $session->id)
+                ->whereDate('tanggal', $validated['tanggal'])
+                ->where('status', '!=', SessionStatus::CLOSED)
+                ->where(function ($q) use ($validated) {
+                    $q->where('waktu_mulai', '<', $validated['waktu_selesai'])
+                        ->where('waktu_selesai', '>', $validated['waktu_mulai']);
+                })
+                ->exists();
+
+            if ($conflict) {
+                return back()->withInput()->withErrors([
+                    'operator_id' => 'Operator sudah punya sesi lain di jam yang sama.',
+                ]);
+            }
+        }
+
+        // Capture perubahan
         $changes = [];
         foreach (['class_id', 'tanggal', 'waktu_mulai', 'waktu_selesai', 'operator_id'] as $field) {
             $oldValue = $session->$field;
@@ -393,7 +384,6 @@ class ElectionSessionController extends Controller
         $session->update($validated);
         $session->refresh();
 
-        // ✅ Activity Log
         ActivityLog::log('session.updated', [
             'subject_type' => ElectionSession::class,
             'subject_id'   => $session->id,
@@ -409,9 +399,6 @@ class ElectionSessionController extends Controller
             ->with('success', 'Sesi berhasil diperbarui.');
     }
 
-    /**
-     * Delete session.
-     */
     public function destroy(ElectionSession $session): RedirectResponse
     {
         if ($session->status !== SessionStatus::SCHEDULED) {
@@ -421,7 +408,6 @@ class ElectionSessionController extends Controller
         $electionId = $session->election_id;
         $kelasName  = $session->classRoom?->name ?? '-';
 
-        // ✅ Capture metadata sebelum delete
         $meta = [
             'election_id'  => $session->election_id,
             'election'     => $session->election?->title,
@@ -441,7 +427,6 @@ class ElectionSessionController extends Controller
 
         Log::warning("Session deleted: {$kelasName} by " . auth()->user()->name);
 
-        // ✅ Activity Log
         ActivityLog::log('session.deleted', [
             'subject_type' => ElectionSession::class,
             'subject_id'   => $session->id,
@@ -453,13 +438,6 @@ class ElectionSessionController extends Controller
             ->with('success', "Sesi kelas {$kelasName} berhasil dihapus.");
     }
 
-    // ==========================================
-    // CUSTOM ACTIONS
-    // ==========================================
-
-    /**
-     * Assign voters dari kelas ini ke sesi.
-     */
     public function assignVoters(ElectionSession $session): RedirectResponse
     {
         if ($session->status !== SessionStatus::SCHEDULED) {
@@ -478,7 +456,6 @@ class ElectionSessionController extends Controller
 
         Log::info("Voters assigned: {$count} to session #{$session->id} by " . auth()->user()->name);
 
-        // ✅ Activity Log — hanya kalau ada voter baru di-assign
         if ($count > 0) {
             ActivityLog::log('session.assigned', [
                 'subject_type' => ElectionSession::class,
@@ -494,9 +471,6 @@ class ElectionSessionController extends Controller
         return back()->with('success', "{$count} pemilih berhasil di-assign ke sesi ini.");
     }
 
-    /**
-     * Close session (active → closed).
-     */
     public function close(ElectionSession $session): RedirectResponse
     {
         if ($session->status !== SessionStatus::ACTIVE) {
@@ -512,7 +486,6 @@ class ElectionSessionController extends Controller
 
         Log::info("Session manually closed: {$kelasName} by " . auth()->user()->name);
 
-        // ✅ Activity Log
         ActivityLog::log('session.closed', [
             'subject_type' => ElectionSession::class,
             'subject_id'   => $session->id,
@@ -526,13 +499,6 @@ class ElectionSessionController extends Controller
         return back()->with('success', "Sesi kelas {$kelasName} berhasil ditutup.");
     }
 
-    // ==========================================
-    // PRIVATE HELPERS
-    // ==========================================
-
-    /**
-     * Assign voters dari kelas ini ke sesi.
-     */
     private function assignVotersToSession(ElectionSession $session): int
     {
         $users = User::where('role', UserRole::VOTER)

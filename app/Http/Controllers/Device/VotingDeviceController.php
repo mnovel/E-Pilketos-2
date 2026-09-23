@@ -250,15 +250,15 @@ class VotingDeviceController extends Controller
                 Log::info("Vote submitted: voter #{$voter->id} at election {$device->election_id}");
 
                 // ✅ Activity Log — user_id NULL (system action, vote anonim)
-                // ⚠️ JANGAN tambah voter_id / user_id voter — jaga anonimitas!
                 ActivityLog::log('vote.submitted', [
-                    'meta' => [
+                    'user_id' => null,
+                    'meta'    => [
                         'election_id'  => $device->election_id,
                         'session_id'   => $voter->session_id,
                         'candidate_id' => $candidate->id,
                         'via_device'   => $device->device_label,
                     ],
-                ], userId: null);
+                ]);
             });
 
             return response()->json(['status' => 'ok']);

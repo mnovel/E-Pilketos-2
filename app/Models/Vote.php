@@ -10,7 +10,6 @@ class Vote extends Model
 {
     use HasFactory;
 
-    // ⚠️ TIDAK ADA user_id / voter_id!
     protected $fillable = [
         'election_id',
         'session_id',
@@ -18,7 +17,7 @@ class Vote extends Model
         'hash',
     ];
 
-    public $timestamps = false;   // hanya created_at, tanpa updated_at
+    public $timestamps = false;
 
     protected $casts = [
         'created_at' => 'datetime',
