@@ -57,20 +57,7 @@ use App\Http\Controllers\Voter\ScanController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::get('/debug-ip', function () {
-    return [
-        'ip'      => request()->ip(),
-        'ips'     => request()->ips(),
-        'is_secure' => request()->isSecure(),
-        'headers' => [
-            'x-forwarded-for'   => request()->header('X-Forwarded-For'),
-            'x-forwarded-proto' => request()->header('X-Forwarded-Proto'),
-            'x-real-ip'         => request()->header('X-Real-IP'),
-        ],
-    ];
-});
-
-// ✅ Rate limit cek-status: 10x/menit per IP
+// ✅ Rate limit cek-status: 10x/menit per IP (cegah enumeration NIS)
 Route::prefix('cek-status')->name('cek-status.')->group(function () {
     Route::get('/', [CheckStatusController::class, 'index'])->name('index');
     Route::post('/', [CheckStatusController::class, 'check'])
@@ -94,7 +81,7 @@ Route::get('/register/success', [RegisterController::class, 'success'])
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    // ✅ Rate limit register: 3x/jam per IP (cegah spam)
+    // ✅ Rate limit register: 3x/jam per IP (cegah spam akun)
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])
         ->middleware('throttle:3,60')
@@ -117,23 +104,29 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-    // PROFILE
+    // ==========================================
+    // PROFILE (semua role)
+    // ==========================================
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::put('/update', [ProfileController::class, 'update'])->name('update');
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
     });
 
-    // ADMIN
+    // ==========================================
+    // ADMIN ONLY
+    // ==========================================
     Route::middleware('role:admin')
         ->prefix('admin')
         ->name('admin.')
         ->group(function () {
 
+            // Dashboard
             Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
             Route::get('/dashboard/live-stats', [AdminDashboard::class, 'liveStats'])->name('dashboard.live-stats');
 
-            // Voters
+            // ==== Voters ====
+            // Import (harus sebelum resource voters/{voter})
             Route::prefix('voters/import')->name('voters.import.')->group(function () {
                 Route::get('/', [VoterImportController::class, 'index'])->name('index');
                 Route::get('/template', [VoterImportController::class, 'downloadTemplate'])->name('template');
@@ -151,36 +144,39 @@ Route::middleware('auth')->group(function () {
             Route::post('/voters/{voter}/approve', [VoterController::class, 'approve'])->name('voters.approve');
             Route::post('/voters/{voter}/reject', [VoterController::class, 'reject'])->name('voters.reject');
 
-            // Elections
+            // ==== Elections ====
             Route::post('elections/{election}/close', [ElectionController::class, 'close'])->name('elections.close');
             Route::post('elections/{election}/publish', [ElectionController::class, 'publish'])->name('elections.publish');
 
+            // Hasil & Export (taruh sebelum resource elections)
             Route::get('elections/{election}/hasil', [ResultController::class, 'show'])->name('elections.hasil');
             Route::get('elections/{election}/export-pdf', [ResultController::class, 'exportPdf'])->name('elections.export-pdf');
             Route::get('elections/{election}/export-excel', [ResultController::class, 'exportExcel'])->name('elections.export-excel');
 
             Route::resource('elections', ElectionController::class);
+
+            // ==== Candidates ====
             Route::resource('candidates', CandidateController::class);
 
-            // Sessions
+            // ==== Sessions ====
             Route::post('sessions/{session}/assign-voters', [ElectionSessionController::class, 'assignVoters'])->name('sessions.assign-voters');
             Route::post('sessions/{session}/close', [ElectionSessionController::class, 'close'])->name('sessions.close');
             Route::resource('sessions', ElectionSessionController::class)
                 ->parameters(['sessions' => 'session']);
 
-            // Classes
+            // ==== Kelas ====
             Route::post('classes/{class}/toggle-active', [ClassRoomController::class, 'toggleActive'])->name('classes.toggle-active');
             Route::resource('classes', ClassRoomController::class);
 
-            // Operators
+            // ==== Operators ====
             Route::post('operators/{operator}/reset-password', [OperatorController::class, 'resetPassword'])->name('operators.reset-password');
             Route::resource('operators', OperatorController::class);
 
-            // Activity Log
+            // ==== Activity Log ====
             Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
             Route::get('activity-logs/{log}', [ActivityLogController::class, 'show'])->name('activity-logs.show');
 
-            // Device Logs
+            // ==== Device Logs ====
             Route::prefix('device-logs')->name('device-logs.')->group(function () {
                 Route::get('/', [DeviceLogController::class, 'index'])->name('index');
                 Route::delete('checkin/{device}', [DeviceLogController::class, 'destroyCheckin'])->name('destroy-checkin');
@@ -189,7 +185,9 @@ Route::middleware('auth')->group(function () {
             });
         });
 
+    // ==========================================
     // OPERATOR ONLY
+    // ==========================================
     Route::middleware('role:operator')
         ->prefix('operator')
         ->name('operator.')
@@ -197,7 +195,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/dashboard', [OperatorDashboard::class, 'index'])->name('dashboard');
         });
 
+    // ==========================================
     // VOTER ONLY
+    // ==========================================
     Route::middleware('role:voter')
         ->prefix('voter')
         ->name('voter.')
@@ -206,9 +206,12 @@ Route::middleware('auth')->group(function () {
             Route::view('/scan', 'voter.scan.index')->name('scan');
         });
 
-    // SCAN dari HP siswa
-    // ✅ Rate limit scan: 30x/menit (cegah token bruteforce)
-    Route::middleware(['role:voter', 'throttle:30,1'])
+    // ==========================================
+    // SCAN dari HP siswa — voter only
+    // ==========================================
+    // ✅ Token 12-char random = 4.7 quadrillion kombinasi
+    //    Brute force tidak praktis → tidak perlu rate limit
+    Route::middleware('role:voter')
         ->prefix('scan')
         ->name('scan.')
         ->group(function () {
@@ -216,9 +219,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/voting/{token}', [ScanController::class, 'voting'])->name('voting');
         });
 
-    // DEVICE (operator & admin)
+    // ==========================================
+    // DEVICE — operator & admin
+    // ==========================================
     Route::middleware('role:operator,admin')->group(function () {
 
+        // Device Check-in
         Route::prefix('device/checkin')
             ->name('device.checkin.')
             ->group(function () {
@@ -230,12 +236,13 @@ Route::middleware('auth')->group(function () {
                 Route::post('/reopen', [CheckinDeviceController::class, 'reopen'])->name('reopen');
             });
 
+        // Device Voting
         Route::prefix('device/voting')
             ->name('device.voting.')
             ->group(function () {
                 Route::get('/', [VotingDeviceController::class, 'index'])->name('index');
                 Route::get('/status', [VotingDeviceController::class, 'status'])
-                    ->middleware('throttle:120,1')  // ✅
+                    ->middleware('throttle:120,1')
                     ->name('status');
                 Route::post('/submit', [VotingDeviceController::class, 'submit'])
                     ->middleware('throttle:10,1')
