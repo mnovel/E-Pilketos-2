@@ -230,4 +230,87 @@ class CandidateManagementTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    // ==========================================
+    // ✅ REGRESSION — BLADE VIEW CLASS_ID FIELD
+    // ==========================================
+
+    public function test_edit_view_uses_class_id_field()
+    {
+        // ✅ Regression test untuk bug di edit.blade.php:
+        // sebelumnya pakai name="kelas" + $candidate->kelas (kolom tidak ada)
+        $admin = $this->createAdmin();
+        $election = Election::factory()->draft()->create();
+        $candidate = Candidate::factory()->create(['election_id' => $election->id]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.candidates.edit', $candidate));
+
+        $response->assertOk();
+        $response->assertSee('name="class_id"', false);
+        $response->assertDontSee('name="kelas"', false);
+    }
+
+    public function test_create_view_uses_class_id_field()
+    {
+        // ✅ Regression test — form create harus konsisten pakai class_id
+        $admin = $this->createAdmin();
+        $election = Election::factory()->draft()->create();
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.candidates.create', ['election_id' => $election->id]));
+
+        $response->assertOk();
+        $response->assertSee('name="class_id"', false);
+        $response->assertDontSee('name="kelas"', false);
+    }
+
+    public function test_update_candidate_with_new_class()
+    {
+        // ✅ Regression test — update class_id harus berhasil
+        $admin = $this->createAdmin();
+        $election = Election::factory()->draft()->create();
+        $oldClass = ClassRoom::factory()->create();
+        $newClass = ClassRoom::factory()->create();
+
+        $candidate = Candidate::factory()->create([
+            'election_id' => $election->id,
+            'class_id'    => $oldClass->id,
+        ]);
+
+        $response = $this->actingAs($admin)->put(
+            route('admin.candidates.update', $candidate),
+            [
+                'no_urut'       => $candidate->no_urut,
+                'nama'          => $candidate->nama,
+                'class_id'      => $newClass->id,
+                'visi'          => $candidate->visi,
+                'misi'          => $candidate->misi,
+                'program_kerja' => $candidate->program_kerja,
+            ]
+        );
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame($newClass->id, $candidate->fresh()->class_id);
+    }
+
+    public function test_edit_view_displays_current_class_as_selected()
+    {
+        // ✅ Verifikasi dropdown menampilkan class_id saat ini sebagai selected
+        $admin = $this->createAdmin();
+        $election = Election::factory()->draft()->create();
+        $class = ClassRoom::factory()->create(['name' => 'XII-IPA-7']);
+
+        $candidate = Candidate::factory()->create([
+            'election_id' => $election->id,
+            'class_id'    => $class->id,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.candidates.edit', $candidate));
+
+        $response->assertOk();
+        $response->assertSee('XII-IPA-7');
+        $response->assertSee('value="' . $class->id . '"', false);
+    }
 }

@@ -86,15 +86,23 @@
                             </div>
                         </div>
 
-                        {{-- Kelas --}}
+                        {{-- ✅ Kelas — dropdown dari $classes --}}
                         <div class="mb-3">
-                            <label for="kelas" class="form-label">
+                            <label for="class_id" class="form-label">
                                 Kelas <span class="text-danger">*</span>
                             </label>
-                            <input type="text" id="kelas" name="kelas" class="form-control @error('kelas') is-invalid @enderror" value="{{ old('kelas', $candidate->kelas) }}" required>
-                            @error('kelas')
+                            <select id="class_id" name="class_id" class="form-select @error('class_id') is-invalid @enderror" required>
+                                <option value="">— Pilih Kelas —</option>
+                                @foreach ($classes as $class)
+                                    <option value="{{ $class->id }}" {{ old('class_id', $candidate->class_id) == $class->id ? 'selected' : '' }}>
+                                        {{ $class->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('class_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <small class="text-muted">Hanya kelas aktif yang ditampilkan.</small>
                         </div>
 
                         {{-- Visi --}}
