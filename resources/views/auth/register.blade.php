@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Pemilih - Pilketos</title>
+    <title>Daftar Pemilih - {{ config('app.name', 'Pilketos') }}</title>
 
     <meta name="description" content="Pendaftaran Pemilih Pilketos Digital">
 

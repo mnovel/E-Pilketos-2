@@ -499,7 +499,7 @@
         <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-3">
             <div>
                 <i class="bi bi-asterisk text-brand-lime"></i>
-                <strong class="text-white/90">Pilketos Digital</strong> &copy; {{ date('Y') }}
+                <strong class="text-white/90">Pilketos</strong> &copy; {{ date('Y') }} {{ config('app.name', 'Pilketos') }}
             </div>
             <div class="flex gap-6">
                 <a href="{{ route('cek-status.index') }}" class="hover:text-brand-lime transition">Cek Status</a>

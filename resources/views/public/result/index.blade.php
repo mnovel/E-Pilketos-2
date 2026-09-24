@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Pemilihan - Pilketos</title>
+    <title>Hasil Pemilihan - {{ config('app.name', 'Pilketos') }}</title>
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('storage/assets/css/main.css') }}">
@@ -24,8 +24,8 @@
 
                 <div class="d-flex gap-2">
                     @auth
-                        <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}"
-                            class="btn btn-sm" style="background: #c6f135; color: #1a2e1a; font-weight: 600;">
+                        <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}" class="btn btn-sm"
+                            style="background: #c6f135; color: #1a2e1a; font-weight: 600;">
                             <i class="bi bi-speedometer2"></i> Dashboard
                         </a>
                     @else
@@ -104,7 +104,7 @@
 
     {{-- FOOTER --}}
     <footer class="text-center py-4 text-muted small">
-        &copy; {{ date('Y') }} Pilketos Digital
+        &copy; {{ date('Y') }} {{ config('app.name', 'Pilketos') }}
     </footer>
 
 </body>

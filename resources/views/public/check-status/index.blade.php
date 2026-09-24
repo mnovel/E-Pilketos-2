@@ -4,131 +4,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cek Status - Pilketos</title>
-
+    <title>Cek Status - {{ config('app.name', 'Pilketos') }}</title>
+    <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ asset('storage/assets/css/main.css') }}">
 
-    {{-- Tailwind CDN --}}
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            dark: '#1a2e1a',
-                            mid: '#2d5a3d',
-                            lime: '#c6f135',
-                            limeHover: '#a8d92d',
-                            cream: '#e8f5c8',
-                            deep: '#0f1f0f',
-                        },
-                    },
-                },
-            },
-        };
-    </script>
+    <style>
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+    </style>
 </head>
 
-<body class="bg-slate-100 min-h-screen flex flex-col font-sans m-0">
+<body>
 
-    {{-- ==========================================
-         HEADER
-         ========================================== --}}
-    <header class="bg-brand-dark text-white py-5">
-        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center flex-wrap gap-3">
-            <a href="{{ url('/') }}" class="no-underline">
-                <h3 class="mb-0 text-2xl font-extrabold text-brand-lime flex items-center gap-2">
-                    <i class="bi bi-asterisk"></i> Pilketos
-                </h3>
-            </a>
+    {{-- HEADER --}}
+    <header style="background: #1a2e1a; color: white; padding: 20px 0;">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <a href="{{ url('/') }}" class="text-decoration-none">
+                    <h3 class="mb-0" style="color: #c6f135;">
+                        <i class="bi bi-asterisk"></i> Pilketos
+                    </h3>
+                </a>
 
-            <div class="flex gap-2">
-                @auth
-                    <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}"
-                        class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark font-semibold text-sm px-4 py-2 rounded-lg inline-flex items-center gap-1.5 transition hover:-translate-y-0.5">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                @else
-                    <a href="{{ route('login') }}" class="border border-white/40 hover:bg-white/10 text-white text-sm px-4 py-2 rounded-lg inline-flex items-center gap-1.5 transition">
-                        <i class="bi bi-box-arrow-in-right"></i> Login
-                    </a>
-                    <a href="{{ route('register') }}"
-                        class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark font-semibold text-sm px-4 py-2 rounded-lg inline-flex items-center gap-1.5 transition hover:-translate-y-0.5">
-                        <i class="bi bi-person-plus"></i> Daftar
-                    </a>
-                @endauth
+                <div class="d-flex gap-2">
+                    @auth
+                        <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}" class="btn btn-sm"
+                            style="background: #c6f135; color: #1a2e1a; font-weight: 600;">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    @else
+                        <a href="{{ route('login') }}" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        </a>
+                        <a href="{{ route('register') }}" class="btn btn-sm" style="background: #c6f135; color: #1a2e1a; font-weight: 600;">
+                            <i class="bi bi-person-plus"></i> Daftar
+                        </a>
+                    @endauth
+                </div>
             </div>
         </div>
     </header>
 
-    {{-- ==========================================
-         CONTENT
-         ========================================== --}}
-    <main class="flex-1 py-16 px-4">
-        <div class="max-w-xl mx-auto">
+    {{-- CONTENT --}}
+    <div class="container py-5">
 
-            {{-- CARD --}}
-            <div class="bg-white rounded-3xl shadow-lg p-8 md:p-12 text-center">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
 
-                {{-- Icon --}}
-                <div class="w-20 h-20 mx-auto rounded-full bg-brand-cream flex items-center justify-center mb-5">
-                    <i class="bi bi-search text-3xl text-lime-700"></i>
-                </div>
+                {{-- CARD --}}
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body p-5 text-center">
 
-                <h3 class="text-2xl md:text-3xl font-extrabold text-brand-dark mb-2">Cek Status Pendaftaran</h3>
-                <p class="text-slate-500 mb-8">
-                    Masukkan NIS untuk melihat status pendaftaran Anda
-                </p>
+                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px; background: #e8f5c8;">
+                            <i class="bi bi-search" style="font-size: 2rem; color: #7cb518;"></i>
+                        </div>
 
-                {{-- Form --}}
-                <form action="{{ route('cek-status.check') }}" method="POST">
-                    @csrf
+                        <h3 class="fw-bold mb-2">Cek Status Pendaftaran</h3>
+                        <p class="text-muted mb-4">
+                            Masukkan NIS untuk melihat status pendaftaran Anda
+                        </p>
 
-                    <div class="mb-5">
-                        <input type="text" name="nis" value="{{ old('nis') }}" placeholder="Masukkan NIS" autofocus required
-                            class="w-full text-center text-xl font-semibold tracking-widest border-2 rounded-xl px-4 py-4 bg-slate-50 text-brand-dark outline-none transition
-                                      {{ $errors->has('nis') ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-100' : 'border-slate-200 focus:border-brand-lime focus:ring-4 focus:ring-brand-lime/20' }}">
+                        <form action="{{ route('cek-status.check') }}" method="POST">
+                            @csrf
 
-                        @error('nis')
-                            <div class="text-rose-500 text-sm mt-2 text-left">{{ $message }}</div>
-                        @enderror
+                            <div class="mb-4">
+                                <input type="text" name="nis" class="form-control form-control-lg text-center @error('nis') is-invalid @enderror" value="{{ old('nis') }}"
+                                    placeholder="Masukkan NIS" style="font-size: 1.2rem; font-weight: 600;
+                                              letter-spacing: 2px;" autofocus required>
+
+                                @error('nis')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <button type="submit" class="btn w-100"
+                                style="background: #c6f135; color: #1a2e1a;
+                                           font-weight: 700; padding: 12px;
+                                           font-size: 1rem;">
+                                <i class="bi bi-search"></i> Cek Status
+                            </button>
+
+                        </form>
+
+                        <div class="mt-4 pt-4 border-top">
+                            <small class="text-muted">
+                                Belum daftar? <a href="{{ route('register') }}" class="fw-medium">
+                                    Daftar sekarang
+                                </a>
+                            </small>
+                        </div>
+
                     </div>
-
-                    <button type="submit"
-                        class="w-full bg-brand-lime hover:bg-brand-limeHover text-brand-dark font-bold text-base rounded-xl py-4 inline-flex items-center justify-center gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30 cursor-pointer border-0">
-                        <i class="bi bi-search"></i> Cek Status
-                    </button>
-                </form>
-
-                {{-- Footer card --}}
-                <div class="mt-8 pt-6 border-t border-slate-200">
-                    <small class="text-slate-500">
-                        Belum daftar?
-                        <a href="{{ route('register') }}" class="font-semibold text-brand-mid hover:text-brand-dark hover:underline transition">
-                            Daftar sekarang
-                        </a>
-                    </small>
                 </div>
-            </div>
 
-            {{-- Info --}}
-            <div class="bg-blue-50 text-blue-800 border border-blue-200 rounded-xl px-4 py-3 mt-6 text-sm inline-flex items-start gap-2 text-left w-full">
-                <i class="bi bi-info-circle mt-0.5"></i>
-                <span>
+                {{-- Info --}}
+                <div class="alert alert-info mt-4 small">
+                    <i class="bi bi-info-circle"></i>
                     <strong>Info:</strong> Status akan <strong>Menunggu</strong> sampai
                     panitia memverifikasi akun Anda. Biasanya 1×24 jam kerja.
-                </span>
+                </div>
+
             </div>
-
         </div>
-    </main>
 
-    {{-- ==========================================
-         FOOTER
-         ========================================== --}}
-    <footer class="text-center py-4 text-slate-500 text-sm">
-        &copy; {{ date('Y') }} Pilketos Digital
+    </div>
+
+    {{-- FOOTER --}}
+    <footer class="text-center py-4 text-muted small">
+        &copy; {{ date('Y') }} {{ config('app.name', 'Pilketos') }}
     </footer>
 
 </body>

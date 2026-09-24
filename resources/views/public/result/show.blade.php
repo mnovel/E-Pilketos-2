@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil {{ $election->title }} - Pilketos</title>
+    <title>Hasil {{ $election->title }} - {{ config('app.name', 'Pilketos') }}</title>
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('storage/assets/css/main.css') }}">
@@ -212,7 +212,7 @@
 
     {{-- FOOTER --}}
     <footer class="text-center py-4 text-muted small">
-        &copy; {{ date('Y') }} Pilketos Digital
+        &copy; {{ date('Y') }} {{ config('app.name', 'Pilketos') }}
     </footer>
 
     {{-- CHART SCRIPT --}}

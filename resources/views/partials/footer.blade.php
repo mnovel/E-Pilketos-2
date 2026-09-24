@@ -5,7 +5,7 @@
         </span>
         <span class="footer-separator">|</span>
         <span class="footer-copy">
-            &copy; {{ date('Y') }} Pemilihan Ketua OSIS Digital
+            &copy; {{ date('Y') }} {{ config('app.name', 'Pilketos') }}
         </span>
     </div>
     <div class="footer-right">

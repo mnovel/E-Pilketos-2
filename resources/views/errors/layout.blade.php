@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Error') - Pilketos</title>
+    <title>@yield('title', 'Error') - {{ config('app.name', 'Pilketos') }}</title>
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
     <style>
@@ -246,7 +246,7 @@
         </div>
 
         <div class="error-footer">
-            <i class="bi bi-asterisk"></i> Pilketos Digital &copy; {{ date('Y') }}
+            <i class="bi bi-asterisk"></i> &copy; {{ date('Y') }} {{ config('app.name', 'Pilketos') }}
         </div>
 
     </div>

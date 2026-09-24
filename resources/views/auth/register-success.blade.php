@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pendaftaran Berhasil - Pilketos</title>
+    <title>Pendaftaran Berhasil - {{ config('app.name', 'Pilketos') }}</title>
 
     <link rel="icon" type="image/png" href="{{ asset('storage/assets/images/favicon.ico') }}">
 
