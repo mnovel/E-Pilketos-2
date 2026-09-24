@@ -151,14 +151,23 @@ Route::middleware('auth')->group(function () {
                 Route::get('/report', [VoterImportController::class, 'report'])->name('report');
             });
 
+            // ✅ ROUTE STATIS dulu (create & store)
             Route::get('/voters', [VoterController::class, 'index'])->name('voters.index');
+            Route::get('/voters/create', [VoterController::class, 'create'])->name('voters.create');
+            Route::post('/voters', [VoterController::class, 'store'])->name('voters.store');
+
+            // Bulk actions (statis, sebelum {voter})
             Route::post('/voters/bulk-approve', [VoterController::class, 'bulkApprove'])->name('voters.bulk-approve');
             Route::post('/voters/bulk-reject', [VoterController::class, 'bulkReject'])->name('voters.bulk-reject');
-            Route::post('/voters/{voter}/reset-password', [VoterController::class, 'resetPassword'])->name('voters.reset-password');
-            Route::post('/voters/{voter}/generate-password', [VoterController::class, 'generatePassword'])->name('voters.generate-password');
+
+            // ✅ ROUTE DINAMIS ({voter})
+            Route::get('/voters/{voter}/edit', [VoterController::class, 'edit'])->name('voters.edit');
+            Route::put('/voters/{voter}', [VoterController::class, 'update'])->name('voters.update');
             Route::get('/voters/{voter}', [VoterController::class, 'show'])->name('voters.show');
             Route::post('/voters/{voter}/approve', [VoterController::class, 'approve'])->name('voters.approve');
             Route::post('/voters/{voter}/reject', [VoterController::class, 'reject'])->name('voters.reject');
+            Route::post('/voters/{voter}/reset-password', [VoterController::class, 'resetPassword'])->name('voters.reset-password');
+            Route::post('/voters/{voter}/generate-password', [VoterController::class, 'generatePassword'])->name('voters.generate-password');
 
             // ==== Elections ====
             Route::post('elections/{election}/close', [ElectionController::class, 'close'])->name('elections.close');

@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\ClassRoom;
 use App\Models\User;
+use App\Models\Voter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -84,12 +85,16 @@ class VoterCardController extends Controller
             abort(404, 'Tidak ada voter di kelas ini.');
         }
 
-        // ✅ Cek apakah imagick / gd tersedia untuk PNG
-        $usePng = extension_loaded('imagick') || extension_loaded('gd');
+        // ✅ SimpleSoftwareIO\QrCode hanya support PNG via Imagick.
+        // Kalau imagick tidak ada → fallback ke SVG (tidak butuh extension apapun).
+        $usePng = extension_loaded('imagick');
 
-        // Generate QR untuk setiap voter
+        // ✅ BUG #1 FIX: resolve qr_content dari tabel `voters`, bukan `users`.
+        // Kolom `qr_token` tidak ada di `users` — jadi sebelumnya selalu fallback ke NIS.
+        $voters->loadMissing('voterRecords');
+
         $cards = $voters->map(function (User $voter) use ($usePng) {
-            $qrContent = $voter->qr_token ?? $voter->nis ?? '-';
+            $qrContent = $this->resolveQrContent($voter);
 
             $qrGenerator = QrCode::size(300)->margin(1)->errorCorrection('M');
 
@@ -139,6 +144,37 @@ class VoterCardController extends Controller
         ]);
 
         return $pdf->download($filename);
+    }
+
+    // ==========================================
+    // PRIVATE HELPERS
+    // ==========================================
+
+    /**
+     * ✅ BUG #1 FIX — Resolve QR content dari record `voters`, bukan `users`.
+     *
+     * Priority:
+     * 1. `voters.qr_token` (token random PLK-xxx)
+     * 2. `users.nis` (fallback)
+     * 3. `'-'` (fallback terakhir)
+     *
+     * Kenapa method terpisah?
+     * - Testable via ReflectionMethod
+     * - Single source of truth untuk logic QR content
+     * - Mudah di-refactor nanti (misal: pilih voter record berdasarkan election aktif)
+     */
+    private function resolveQrContent(User $voter): string
+    {
+        $voterRecord = Voter::where('user_id', $voter->id)
+            ->orderByDesc('id')
+            ->first();
+
+        // ✅ Pakai ?: (elvis), bukan ?? (null coalescing).
+        //    ?: fallback untuk null, '', 0, '0', false.
+        //    ?? cuma fallback untuk null.
+        return $voterRecord?->qr_token
+            ?: $voter->nis
+            ?: '-';
     }
 
     /**

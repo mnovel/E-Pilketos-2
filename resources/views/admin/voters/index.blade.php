@@ -11,12 +11,9 @@
 
 @section('content')
 
-    {{-- ==========================================
-         STATS CARDS
-         ========================================== --}}
+    {{-- STATS CARDS --}}
     <div class="row g-3 mb-4">
 
-        {{-- Total --}}
         <div class="col-md-3 col-6">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center gap-3">
@@ -31,7 +28,6 @@
             </div>
         </div>
 
-        {{-- Menunggu --}}
         <div class="col-md-3 col-6">
             <a href="{{ route('admin.voters.index', ['status' => 'pending']) }}" class="text-decoration-none">
                 <div class="card border-0 shadow-sm h-100">
@@ -48,7 +44,6 @@
             </a>
         </div>
 
-        {{-- Terverifikasi --}}
         <div class="col-md-3 col-6">
             <a href="{{ route('admin.voters.index', ['status' => 'verified']) }}" class="text-decoration-none">
                 <div class="card border-0 shadow-sm h-100">
@@ -65,7 +60,6 @@
             </a>
         </div>
 
-        {{-- Ditolak --}}
         <div class="col-md-3 col-6">
             <a href="{{ route('admin.voters.index', ['status' => 'rejected']) }}" class="text-decoration-none">
                 <div class="card border-0 shadow-sm h-100">
@@ -84,17 +78,13 @@
 
     </div>
 
-    {{-- ==========================================
-         FORM BULK
-         ========================================== --}}
+    {{-- FORM BULK --}}
     <form id="bulkForm" method="POST" action="">
         @csrf
         <input type="hidden" name="alasan_reject" id="bulkAlasan" value="">
     </form>
 
-    {{-- ==========================================
-         TABLE CARD
-         ========================================== --}}
+    {{-- TABLE CARD --}}
     <div class="table-card-custom">
 
         {{-- BULK ACTION BAR --}}
@@ -121,7 +111,6 @@
         {{-- HEADER CONTROLS --}}
         <div class="table-header-control">
 
-            {{-- Live search --}}
             <form method="GET" class="table-search-box" id="searchForm" onsubmit="return false;">
                 <i class="bi bi-search table-search-icon"></i>
                 <input type="hidden" name="status" value="{{ $status }}">
@@ -137,7 +126,6 @@
                 @endif
             </form>
 
-            {{-- Status Filter --}}
             <div class="table-filter-group">
                 <div class="dropdown">
                     <button class="btn-table-action dropdown-toggle" type="button" id="dropdownFilterStatus" data-bs-toggle="dropdown" aria-expanded="false">
@@ -179,8 +167,12 @@
                         </li>
                     </ul>
                 </div>
-                {{-- Di table-filter-group, sebelum tombol atau setelahnya --}}
-                <a href="{{ route('admin.voters.import.index') }}" class="btn-table-action btn-custom-primary text-white">
+
+                <a href="{{ route('admin.voters.create') }}" class="btn-table-action btn-custom-primary text-white">
+                    <i class="bi bi-plus-lg"></i> Tambah
+                </a>
+
+                <a href="{{ route('admin.voters.import.index') }}" class="btn-table-action btn-custom-outline-primary">
                     <i class="bi bi-cloud-upload"></i> Import
                 </a>
             </div>
@@ -204,6 +196,11 @@
                 </thead>
                 <tbody>
                     @forelse ($voters as $voter)
+                        @php
+                            $canEdit = $voter->canEditVoterData();
+                            $lockReason = $voter->getEditLockReason();
+                        @endphp
+
                         <tr>
                             {{-- Checkbox --}}
                             <td>
@@ -273,6 +270,17 @@
                                     <a href="{{ route('admin.voters.show', $voter) }}" class="table-btn-action" title="Lihat detail">
                                         <i class="bi bi-eye"></i>
                                     </a>
+
+                                    @if ($canEdit)
+                                        <a href="{{ route('admin.voters.edit', $voter) }}" class="table-btn-action" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    @else
+                                        <button type="button" class="table-btn-action" style="opacity: 0.4; cursor: not-allowed; border: none; background: transparent;" title="{{ $lockReason }}"
+                                            disabled>
+                                            <i class="bi bi-lock"></i>
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

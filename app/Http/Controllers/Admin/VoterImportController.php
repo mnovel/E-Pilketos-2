@@ -381,13 +381,15 @@ class VoterImportController extends Controller
     }
 
     /**
-     * Generate email otomatis dari NIS.
+     * ✅ Generate email unik dengan format baru: siswa.{3 random}@pilketos.test
+     *
+     * Parameter $nis tidak dipakai lagi (untuk backward compat signature).
      */
     private function generateEmail(string $nis): string
     {
         do {
-            $random = strtolower(Str::random(4));
-            $email = "siswa-{$nis}-{$random}@pilketos.test";
+            $random = strtolower(Str::random(3));
+            $email  = "siswa.{$random}@pilketos.test";
         } while (User::where('email', $email)->exists());
 
         return $email;

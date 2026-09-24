@@ -43,10 +43,6 @@ class VotingDeviceController extends Controller
         $election = $this->detectActiveElection();
         $device   = null;
 
-        if ($election && $election->autoCloseIfEnded()) {
-            $election = null;
-        }
-
         if ($election) {
             $device = $this->getOrCreateDevice($election);
 

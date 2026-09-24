@@ -79,6 +79,8 @@ class ActivityLog extends Model
             'auth.login_rejected'     => 'Login Ditolak',
 
             // ============ VOTER ============
+            'voter.created'           => 'Tambah Pemilih',
+            'voter.updated'           => 'Edit Pemilih',
             'voter.register'          => 'Daftar Voter',
             'voter.verified'          => 'Verifikasi Voter',
             'voter.rejected'          => 'Tolak Voter',

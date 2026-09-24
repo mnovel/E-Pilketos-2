@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ElectionStatus;
+use App\Enums\SessionStatus;
 use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -69,6 +71,72 @@ class User extends Authenticatable
         return $this->status === VoterStatus::PENDING;
     }
 
+    // ==================== VOTER LOCK HELPERS ====================
+
+    /**
+     * Cek apakah data voter ini boleh diedit admin.
+     *
+     * Tidak boleh edit kalau salah satu dari voterRecords:
+     * - Terdaftar di election ACTIVE
+     * - Terdaftar di session ACTIVE
+     * - Sudah check-in
+     * - Sudah vote
+     */
+    public function canEditVoterData(): bool
+    {
+        // Bukan voter → bebas
+        if (!$this->isVoter()) {
+            return true;
+        }
+
+        foreach ($this->voterRecords as $record) {
+            if ($record->election && $record->election->status === ElectionStatus::ACTIVE) {
+                return false;
+            }
+
+            if ($record->session && $record->session->status === SessionStatus::ACTIVE) {
+                return false;
+            }
+
+            if ($record->checked_in || $record->has_voted) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Alasan kenapa voter tidak bisa diedit (untuk tooltip / alert).
+     * Return null kalau bisa edit.
+     */
+    public function getEditLockReason(): ?string
+    {
+        if (!$this->isVoter()) {
+            return null;
+        }
+
+        foreach ($this->voterRecords as $record) {
+            if ($record->election && $record->election->status === ElectionStatus::ACTIVE) {
+                return 'Pemilihan sedang aktif';
+            }
+
+            if ($record->session && $record->session->status === SessionStatus::ACTIVE) {
+                return 'Sesi sedang aktif';
+            }
+
+            if ($record->has_voted) {
+                return 'Voter sudah melakukan voting';
+            }
+
+            if ($record->checked_in) {
+                return 'Voter sudah check-in';
+            }
+        }
+
+        return null;
+    }
+
     // ==================== RELATIONS ====================
 
     public function classRoom(): BelongsTo
@@ -76,7 +144,7 @@ class User extends Authenticatable
         return $this->belongsTo(ClassRoom::class, 'class_id');
     }
 
-    public function verifier()
+    public function verifier(): BelongsTo
     {
         return $this->belongsTo(User::class, 'verified_by');
     }
@@ -86,9 +154,21 @@ class User extends Authenticatable
         return $this->hasMany(User::class, 'verified_by');
     }
 
+    /**
+     * Relasi lama (hasOne) — dibiarkan untuk backward compat.
+     */
     public function voter(): HasOne
     {
         return $this->hasOne(Voter::class);
+    }
+
+    /**
+     * Semua record voter (multi-election).
+     * Dipakai untuk cek lock (election active / session active / vote / check-in).
+     */
+    public function voterRecords(): HasMany
+    {
+        return $this->hasMany(Voter::class);
     }
 
     public function operatedSessions(): HasMany

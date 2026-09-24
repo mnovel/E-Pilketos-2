@@ -85,6 +85,17 @@
                 {{-- Actions --}}
                 <div class="d-flex flex-column gap-2 flex-shrink-0" style="min-width: 180px;">
 
+                    {{-- Tombol Edit (conditional) --}}
+                    @if ($voter->canEditVoterData())
+                        <a href="{{ route('admin.voters.edit', $voter) }}" class="btn-custom btn-custom-outline-primary">
+                            <i class="bi bi-pencil"></i> Edit Data
+                        </a>
+                    @else
+                        <button type="button" class="btn-custom btn-custom-light" style="opacity: 0.6; cursor: not-allowed;" title="{{ $voter->getEditLockReason() }}" disabled>
+                            <i class="bi bi-lock"></i> Terkunci
+                        </button>
+                    @endif
+
                     {{-- Approve / Reject (kalau belum verified) --}}
                     @if ($voter->status !== \App\Enums\VoterStatus::VERIFIED)
                         <button type="button" class="btn-custom btn-custom-primary" onclick="confirmApprove()">

@@ -156,12 +156,9 @@ class DashboardController extends Controller
             return $emptyTrend;
         }
 
-        // ✅ Deteksi driver — HOUR() hanya ada di MySQL, SQLite pakai strftime
+        // ✅ BUG #5 FIX — ekspresi SQL per driver (testable via getHourExpression)
         $driver = DB::connection()->getDriverName();
-
-        $hourExpr = $driver === 'sqlite'
-            ? "strftime('%H', created_at)"
-            : 'HOUR(created_at)';
+        $hourExpr = $this->getHourExpression($driver);
 
         // ✅ Cek ada vote sama sekali
         $hasVotes = Vote::where('election_id', $election->id)->exists();
@@ -211,6 +208,32 @@ class DashboardController extends Controller
             'labels' => $labels,
             'counts' => $counts,
         ];
+    }
+
+    /**
+     * ✅ BUG #5 FIX — SQL expression untuk extract HOUR dari timestamp,
+     * sesuai driver database yang aktif.
+     *
+     * Kenapa method terpisah?
+     * - Testable via ReflectionMethod (tanpa perlu switch DB driver di test)
+     * - Single source of truth
+     * - Mudah ditambah driver baru (misal Oracle, dll)
+     *
+     * @param  string $driver  Nama driver: 'mysql', 'sqlite', 'pgsql', 'sqlsrv', 'mariadb'
+     * @return string          SQL expression yang reference kolom `created_at`
+     */
+    private function getHourExpression(string $driver): string
+    {
+        return match ($driver) {
+            'sqlite' => "strftime('%H', created_at)",
+
+            'pgsql'  => 'EXTRACT(HOUR FROM created_at)',
+
+            'sqlsrv' => 'DATEPART(HOUR, created_at)',
+
+            // MySQL, MariaDB, dan fallback lainnya
+            default  => 'HOUR(created_at)',
+        };
     }
 
     /**

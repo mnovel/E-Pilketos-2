@@ -16,29 +16,19 @@ class GenerateTestVoters extends Command
                             {jumlah=55 : Jumlah voter yang akan dibuat}
                             {--kelas=X-IPA-1 : Nama kelas}
                             {--status=pending : pending|verified|rejected}
-                            {--start= : Nomor mulai NIS (opsional, kalau kosong = random)}
+                            {--start= : Nomor mulai NIS 10 digit (opsional, kalau kosong = random)}
                             {--dry-run : Cek saja tanpa create}';
 
     protected $description = 'Generate voter dummy untuk testing';
 
     private const DEFAULT_PASSWORD = 'password';
     private const SAMPLE_LIMIT = 5;
-
-    private const EMAIL_DOMAINS = [
-        'test.com',
-        'mail.test',
-        'dummy.local',
-        'siswa.test',
-        'pilketos.test',
-    ];
+    private const NIS_LENGTH = 10;
 
     private bool $dryRun = false;
 
     public function handle(): int
     {
-        // ==========================================
-        // VALIDASI INPUT
-        // ==========================================
         $jumlah    = (int) $this->argument('jumlah');
         $kelasName = $this->option('kelas');
         $status    = $this->option('status');
@@ -51,9 +41,6 @@ class GenerateTestVoters extends Command
             return self::FAILURE;
         }
 
-        // ==========================================
-        // CARI KELAS
-        // ==========================================
         $class = ClassRoom::where('name', $kelasName)->first();
 
         if (!$class) {
@@ -61,25 +48,13 @@ class GenerateTestVoters extends Command
             return self::FAILURE;
         }
 
-        // ==========================================
-        // TENTUKAN STATUS & MODE
-        // ==========================================
         $statusEnum = $this->resolveStatus($status);
-        $nisMode    = $start !== null ? "sequential dari {$start}" : "random";
+        $nisMode    = $start !== null ? "sequential dari {$start}" : 'random 10 digit';
 
-        // ==========================================
-        // HEADER
-        // ==========================================
         $this->renderHeader($jumlah, $kelasName, $status, $nisMode);
 
-        // ==========================================
-        // PROSES GENERATE
-        // ==========================================
         $result = $this->generateVoters($jumlah, $class, $statusEnum, $start);
 
-        // ==========================================
-        // RENDER HASIL
-        // ==========================================
         $this->renderResult($result, $kelasName);
 
         return self::SUCCESS;
@@ -89,9 +64,6 @@ class GenerateTestVoters extends Command
     // CORE LOGIC
     // ==========================================
 
-    /**
-     * Loop generate voter.
-     */
     private function generateVoters(
         int $jumlah,
         ClassRoom $class,
@@ -121,9 +93,9 @@ class GenerateTestVoters extends Command
                 continue;
             }
 
-            $email = $this->generateUniqueEmail($nis);
+            $email = $this->generateUniqueEmail();
 
-            $user = $this->createVoter($nis, $class, $email, $status);
+            $this->createVoter($nis, $class, $email, $status);
 
             $created++;
             $this->pushSample($sample, $nis, $email);
@@ -136,9 +108,6 @@ class GenerateTestVoters extends Command
         return compact('created', 'skipped', 'sample');
     }
 
-    /**
-     * Bikin user voter baru.
-     */
     private function createVoter(
         string $nis,
         ClassRoom $class,
@@ -167,20 +136,31 @@ class GenerateTestVoters extends Command
     }
 
     /**
-     * Resolve NIS berdasarkan mode.
+     * ✅ Resolve NIS 10 digit.
+     *
+     * Mode sequential: padLeft 10 digit dengan 0.
+     *   --start=10000  → '0000010000', '0000010001', ...
+     *   --start=0      → '0000000000', '0000000001', ...
+     *
+     * Mode random: 10 digit acak murni.
      */
     private function resolveNis(?string $start, int $index): string
     {
         if ($start !== null) {
-            return '9' . str_pad((string) ($start + $index), 4, '0', STR_PAD_LEFT);
+            return $this->padNis((int) $start + $index);
         }
 
         return $this->generateUniqueNis();
     }
 
     /**
-     * Simpan sample (max N).
+     * ✅ Pad angka jadi 10 digit.
      */
+    private function padNis(int $number): string
+    {
+        return str_pad((string) $number, self::NIS_LENGTH, '0', STR_PAD_LEFT);
+    }
+
     private function pushSample(array &$sample, string $nis, string $email): void
     {
         if (count($sample) < self::SAMPLE_LIMIT) {
@@ -193,12 +173,12 @@ class GenerateTestVoters extends Command
     // ==========================================
 
     /**
-     * Generate NIS unik & random (9 + 5 digit).
+     * ✅ Generate NIS 10 digit unik (random).
      */
     private function generateUniqueNis(int $maxAttempts = 100): string
     {
         for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
-            $nis = '9' . random_int(10000, 99999);
+            $nis = $this->padNis(random_int(0, 9999999999));
 
             if (!User::where('nis', $nis)->exists()) {
                 return $nis;
@@ -206,20 +186,23 @@ class GenerateTestVoters extends Command
         }
 
         throw new \RuntimeException(
-            "Gagal generate NIS unik setelah {$maxAttempts} percobaan. "
-                . "Kemungkinan NIS sudah penuh."
+            "Gagal generate NIS unik setelah {$maxAttempts} percobaan."
         );
     }
 
     /**
-     * Generate email unik.
+     * ✅ Generate email unik dengan format baru: siswa.{3 random}@pilketos.test
+     *
+     * Contoh: siswa.a4b@pilketos.test, siswa.xyz@pilketos.test
+     *
+     * Catatan: 3 karakter lowercase+digit = 36^3 = 46,656 kombinasi.
+     * Loop sampai unique — collision bisa terjadi kalau generate ribuan voter.
      */
-    private function generateUniqueEmail(string $nis, int $maxAttempts = 100): string
+    private function generateUniqueEmail(int $maxAttempts = 100): string
     {
         for ($attempt = 0; $attempt < $maxAttempts; $attempt++) {
-            $random = strtolower(Str::random(4));
-            $domain = self::EMAIL_DOMAINS[array_rand(self::EMAIL_DOMAINS)];
-            $email  = "siswa-{$nis}-{$random}@{$domain}";
+            $random = strtolower(Str::random(3));
+            $email  = "siswa.{$random}@pilketos.test";
 
             if (!User::where('email', $email)->exists()) {
                 return $email;
@@ -227,13 +210,10 @@ class GenerateTestVoters extends Command
         }
 
         throw new \RuntimeException(
-            "Gagal generate email unik untuk NIS {$nis} setelah {$maxAttempts} percobaan."
+            "Gagal generate email unik setelah {$maxAttempts} percobaan."
         );
     }
 
-    /**
-     * Resolve status enum dari string.
-     */
     private function resolveStatus(string $status): VoterStatus
     {
         return match ($status) {

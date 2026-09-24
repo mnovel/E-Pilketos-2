@@ -10,18 +10,21 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class CheckinDeviceController extends Controller
 {
+    /** ✅ Lifetime cookie device label: 30 hari */
+    private const DEVICE_LABEL_COOKIE_MINUTES = 60 * 24 * 30;
+
     /**
      * Entry point.
      */
     public function index(): View
     {
-        // ✅ Kalau user sudah klik "tutup device" — tampil halaman closed
         if (session('checkin_manually_closed')) {
             return view('device.checkin.closed');
         }
@@ -36,10 +39,6 @@ class CheckinDeviceController extends Controller
     {
         $election = $this->detectActiveElection();
         $device   = null;
-
-        if ($election && $election->autoCloseIfEnded()) {
-            $election = null;
-        }
 
         if ($election) {
             $device = $this->getOrCreateDevice($election);
@@ -62,7 +61,6 @@ class CheckinDeviceController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        // ... sama seperti sebelumnya, tidak ada perubahan ...
         $deviceId   = session('checkin_device_id');
         $electionId = session('checkin_election_id');
 
@@ -149,7 +147,7 @@ class CheckinDeviceController extends Controller
     }
 
     /**
-     * ✅ Tutup device — hapus device + set flag closed.
+     * ✅ Tutup device — hapus device + set flag closed + hapus cookie.
      */
     public function close(): RedirectResponse
     {
@@ -160,14 +158,17 @@ class CheckinDeviceController extends Controller
             CheckinDevice::where('id', $deviceId)->delete();
         }
 
-        // Set flag closed (supaya tidak langsung bikin device baru)
+        // ✅ Hapus cookie device label biar tidak reuse device lama
+        Cookie::queue(Cookie::forget('checkin_device_label'));
+
+        // Set flag closed
         session(['checkin_manually_closed' => true]);
 
-        // Clear semua key device
+        // Clear semua key device dari session
         session()->forget([
             'checkin_device_id',
             'checkin_election_id',
-            'checkin_device_label',
+            'checkin_device_label', // backward compat — versi lama
         ]);
 
         Log::info("Checkin device closed (device #{$deviceId})");
@@ -199,14 +200,36 @@ class CheckinDeviceController extends Controller
             ->first();
     }
 
+    /**
+     * ✅ Device label sekarang disimpan di COOKIE (bukan session).
+     *
+     * Kenapa? Karena session lifetime cuma 120 menit (default).
+     * Kalau session expired di tengah event, label baru dibuat → device lama orphan.
+     *
+     * Dengan cookie 30 hari, label persist sampai device benar-benar dihapus manual
+     * (via tombol close / purge).
+     */
     private function getOrCreateDevice(Election $election): CheckinDevice
     {
-        $deviceLabel = session('checkin_device_label');
+        // Baca dari cookie dulu
+        $deviceLabel = request()->cookie('checkin_device_label');
 
+        // Fallback: backward compat ke session (kalau user upgrade dari versi lama)
+        if (!$deviceLabel) {
+            $deviceLabel = session('checkin_device_label');
+        }
+
+        // Kalau masih kosong juga → generate label baru
         if (!$deviceLabel) {
             $deviceLabel = 'Kiosk-' . strtoupper(Str::random(4));
-            session(['checkin_device_label' => $deviceLabel]);
         }
+
+        // ✅ Simpan ke cookie (lifetime 30 hari)
+        Cookie::queue(
+            'checkin_device_label',
+            $deviceLabel,
+            self::DEVICE_LABEL_COOKIE_MINUTES
+        );
 
         $device = CheckinDevice::firstOrCreate(
             [
