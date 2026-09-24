@@ -4,7 +4,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config('app.name', 'Pilketos') }} — Pemilihan Ketua OSIS</title>
+
+    @php
+        $appUrl = rtrim(config('app.url', 'https://sewagati.it.com'), '/');
+        $appName = config('app.name', 'Pilketos');
+        $currentUrl = $appUrl . (request()->path() !== '/' ? '/' . request()->path() : '');
+        $ogImage = $appUrl . '/storage/assets/images/og-image.jpg';
+        $favicon = asset('storage/assets/images/favicon.ico');
+        $pageTitle = $appName . ' | Pemilihan Ketua OSIS Online SMAN 1 Kota Pasuruan';
+
+        $schemaOrg = [
+            '@context' => 'https://schema.org',
+            '@type' => 'EducationalOrganization',
+            'name' => 'SMA Negeri 1 Kota Pasuruan',
+            'alternateName' => 'SMAN 1 Pasuruan',
+            'url' => $appUrl,
+            'logo' => $favicon,
+            'description' => 'Aplikasi E-Pilketos (Pemilihan Ketua OSIS) online SMA Negeri 1 Kota Pasuruan',
+            'address' => [
+                '@type' => 'PostalAddress',
+                'addressLocality' => 'Kota Pasuruan',
+                'addressRegion' => 'Jawa Timur',
+                'addressCountry' => 'ID',
+            ],
+            'geo' => [
+                '@type' => 'GeoCoordinates',
+                'latitude' => -7.6375421158588255,
+                'longitude' => 112.90391879447726,
+            ],
+            'sameAs' => [$appUrl],
+        ];
+
+        $schemaApp = [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebApplication',
+            'name' => 'E-Pilketos SMAN 1 Kota Pasuruan',
+            'url' => $appUrl,
+            'applicationCategory' => 'EducationalApplication',
+            'operatingSystem' => 'Web Browser',
+            'description' => 'Sistem pemilihan ketua OSIS online untuk SMA Negeri 1 Kota Pasuruan',
+            'offers' => [
+                '@type' => 'Offer',
+                'price' => '0',
+                'priceCurrency' => 'IDR',
+            ],
+        ];
+
+        $schemaBreadcrumb = [
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                [
+                    '@type' => 'ListItem',
+                    'position' => 1,
+                    'name' => 'Home',
+                    'item' => $appUrl,
+                ],
+            ],
+        ];
+    @endphp
+
+    <!-- ========== PRIMARY META TAGS ========== -->
+    <title>@yield('title', $pageTitle)</title>
+    <meta name="title" content="@yield('title', $pageTitle)">
+    <meta name="description" content="@yield('description', 'E-Pilketos SMA Negeri 1 Kota Pasuruan - Sistem Pemilihan Ketua OSIS secara online, cepat, transparan, dan real-time. Voting digital untuk siswa SMAN 1 Kota Pasuruan.')">
+    <meta name="keywords"
+        content="e-pilketos, pilketos online, pemilihan ketua osis, SMAN 1 Kota Pasuruan, SMA Negeri 1 Pasuruan, voting online, e-voting sekolah, OSIS Pasuruan, pemilu sekolah, pilketos digital">
+    <meta name="author" content="SMA Negeri 1 Kota Pasuruan">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="language" content="Indonesian">
+    <meta name="revisit-after" content="7 days">
+    <meta name="rating" content="general">
+    <meta name="distribution" content="global">
+
+    <!-- ========== CANONICAL URL ========== -->
+    <link rel="canonical" href="{{ $currentUrl }}">
+
+    <!-- ========== OPEN GRAPH / FACEBOOK ========== -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ $currentUrl }}">
+    <meta property="og:title" content="@yield('title', $pageTitle)">
+    <meta property="og:description" content="Sistem Pemilihan Ketua OSIS online SMAN 1 Kota Pasuruan. Voting digital yang cepat, aman, transparan, dan hasil real-time.">
+    <meta property="og:image" content="{{ $ogImage }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="E-Pilketos SMAN 1 Kota Pasuruan">
+    <meta property="og:site_name" content="E-Pilketos SMAN 1 Kota Pasuruan">
+    <meta property="og:locale" content="id_ID">
+
+    <!-- ========== TWITTER CARD ========== -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="{{ $currentUrl }}">
+    <meta name="twitter:title" content="@yield('title', $pageTitle)">
+    <meta name="twitter:description" content="Sistem Pemilihan Ketua OSIS online SMAN 1 Kota Pasuruan. Voting digital yang cepat, aman, dan transparan.">
+    <meta name="twitter:image" content="{{ $ogImage }}">
+    <meta name="twitter:image:alt" content="E-Pilketos SMAN 1 Kota Pasuruan">
+
+    <!-- ========== GEO TAGS (Local SEO) ========== -->
+    <meta name="geo.region" content="ID-JI">
+    <meta name="geo.placename" content="Kota Pasuruan, Jawa Timur">
+    <meta name="geo.position" content="-7.6375421158588255;112.90391879447726">
+    <meta name="ICBM" content="-7.6375421158588255, 112.90391879447726">
+
+    <!-- ========== THEME & MOBILE ========== -->
+    <meta name="theme-color" content="#1a2e1a">
+    <meta name="msapplication-TileColor" content="#1a2e1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="E-Pilketos SMAN 1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- ========== FAVICON ========== -->
+    <link rel="icon" type="image/x-icon" href="{{ $favicon }}">
+    <link rel="apple-touch-icon" href="{{ $favicon }}">
+
+    <!-- ========== STRUCTURED DATA (JSON-LD) ========== -->
+    <script type="application/ld+json">
+    {!! json_encode($schemaOrg, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+
+    <script type="application/ld+json">
+    {!! json_encode($schemaApp, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+
+    <script type="application/ld+json">
+    {!! json_encode($schemaBreadcrumb, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+    </script>
+
+    <!-- ========== PRECONNECT ========== -->
+    <link rel="preconnect" href="{{ $appUrl }}">
+    <link rel="dns-prefetch" href="{{ $appUrl }}">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
 
@@ -32,7 +164,6 @@
     {{-- Alpine.js --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    {{-- Hanya untuk mencegah flash sebelum Alpine load --}}
     <style>
         [x-cloak] {
             display: none !important;
@@ -80,7 +211,6 @@
          HERO
          ========================================== --}}
     <section class="relative overflow-hidden text-white py-16 md:py-24 bg-gradient-to-br from-brand-dark to-brand-mid">
-        {{-- Dekorasi blur --}}
         <div class="absolute -top-52 -right-52 w-[600px] h-[600px] bg-brand-lime rounded-full blur-[120px] opacity-15 pointer-events-none"></div>
         <div class="absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-brand-limeHover rounded-full blur-[100px] opacity-10 pointer-events-none"></div>
 
@@ -350,24 +480,19 @@
                                 </div>
                             </div>
 
-                            {{-- ==========================================
-                                 MODAL DETAIL KANDIDAT
-                                 ========================================== --}}
+                            {{-- MODAL DETAIL KANDIDAT --}}
                             <div x-data="{ open: false }" @open-candidate-{{ $c->id }}.window="open = true" x-effect="document.body.style.overflow = open ? 'hidden' : ''" x-show="open"
                                 x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
 
-                                {{-- Backdrop --}}
                                 <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
                                     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @click="open = false"
                                     class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
-                                {{-- Panel --}}
                                 <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
                                     x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
                                     x-transition:leave-end="opacity-0 scale-95"
                                     class="relative bg-white rounded-3xl max-w-3xl w-full max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden shadow-2xl">
 
-                                    {{-- Header --}}
                                     <div class="bg-gradient-to-br from-brand-dark to-brand-mid px-6 py-4 flex items-center justify-between shrink-0">
                                         <div>
                                             <div class="text-[0.68rem] uppercase tracking-widest text-white/70">Kandidat</div>
@@ -381,10 +506,7 @@
                                         </button>
                                     </div>
 
-                                    {{-- Body: 2 kolom (foto kiri | info + visi + misi + program kanan) --}}
                                     <div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 md:gap-6 p-4 md:p-6 flex-1 min-h-0 overflow-y-auto">
-
-                                        {{-- Kolom Kiri: Foto --}}
                                         <div class="w-full aspect-[16/9] md:aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-brand-cream to-emerald-100">
                                             @if ($c->foto)
                                                 <img src="{{ asset('storage/' . $c->foto) }}" alt="{{ $c->nama }}" class="w-full h-full object-cover">
@@ -395,10 +517,7 @@
                                             @endif
                                         </div>
 
-                                        {{-- Kolom Kanan --}}
                                         <div class="min-h-0">
-
-                                            {{-- Info di ATAS Visi --}}
                                             <div class="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-2xl mb-5">
                                                 <div class="text-center">
                                                     <div class="text-[0.65rem] uppercase tracking-wider font-extrabold text-slate-500 mb-1">No. Urut</div>
@@ -414,7 +533,6 @@
                                                 </div>
                                             </div>
 
-                                            {{-- Visi --}}
                                             <div class="mb-5 last:mb-0">
                                                 <span
                                                     class="inline-flex items-center gap-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-brand-dark bg-brand-cream px-3 py-1 rounded-full mb-2">
@@ -425,7 +543,6 @@
                                                 </p>
                                             </div>
 
-                                            {{-- Misi --}}
                                             @if ($c->misi)
                                                 <div class="mb-5 last:mb-0">
                                                     <span
@@ -438,7 +555,6 @@
                                                 </div>
                                             @endif
 
-                                            {{-- Program Kerja --}}
                                             @if ($c->program_kerja)
                                                 <div class="mb-5 last:mb-0">
                                                     <span
