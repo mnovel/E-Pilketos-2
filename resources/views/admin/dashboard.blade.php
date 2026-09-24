@@ -137,6 +137,72 @@
     </div>
 
     {{-- ==========================================
+         CHART SECTION
+         ========================================== --}}
+    <div class="row g-3 mb-4">
+
+        {{-- Chart 1: Partisipasi per Kelas (Bar) --}}
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <strong>
+                        <i class="bi bi-bar-chart-fill text-primary me-1"></i>
+                        Partisipasi per Kelas
+                    </strong>
+                    @if ($chartData['has_active_election'])
+                        <small class="text-muted">{{ $chartData['election_title'] }}</small>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @if ($chartData['has_active_election'] && count($chartData['partisipasi_per_kelas']['labels']) > 0)
+                        <div id="chartPartisipasi"></div>
+                    @else
+                        <div class="text-center text-muted py-5">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px; background: #f8f9fa;">
+                                <i class="bi bi-bar-chart" style="font-size: 1.8rem; opacity: 0.4;"></i>
+                            </div>
+                            <p class="mt-2 mb-1 fw-medium">Belum ada data partisipasi</p>
+                            <small>Chart akan muncul saat ada pemilihan aktif</small>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Chart 2: Status Pemilih (Donut) --}}
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <strong>
+                        <i class="bi bi-pie-chart-fill text-success me-1"></i>
+                        Status Pemilih
+                    </strong>
+                </div>
+                <div class="card-body">
+                    <div id="chartStatusPemilih"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- Chart 3: Trend Voting (Line) — full width --}}
+    @if ($chartData['has_active_election'] && count($chartData['trend_voting']['labels']) > 0)
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                <strong>
+                    <i class="bi bi-graph-up-arrow text-warning me-1"></i>
+                    Trend Voting per Jam
+                </strong>
+                <small class="text-muted">{{ $chartData['election_title'] }}</small>
+            </div>
+            <div class="card-body">
+                <div id="chartTrendVoting"></div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ==========================================
          STATS PEMILIH
          ========================================== --}}
     <div class="mb-2">
@@ -450,6 +516,215 @@
 @endsection
 
 @push('scripts')
+    {{-- ==========================================
+         CHART SCRIPTS
+         ========================================== --}}
+    @if ($chartData['has_active_election'] && count($chartData['partisipasi_per_kelas']['labels']) > 0)
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // ==========================================
+                // CHART 1: Partisipasi per Kelas (Bar)
+                // ==========================================
+                const partisipasiData = @json($chartData['partisipasi_per_kelas']);
+
+                const chartPartisipasi = new ApexCharts(
+                    document.querySelector("#chartPartisipasi"), {
+                        chart: {
+                            type: 'bar',
+                            height: 320,
+                            toolbar: {
+                                show: false
+                            },
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                        },
+                        series: [{
+                            name: 'Partisipasi',
+                            data: partisipasiData.voted_pct,
+                        }],
+                        plotOptions: {
+                            bar: {
+                                borderRadius: 6,
+                                columnWidth: '55%',
+                                distributed: true,
+                                dataLabels: {
+                                    position: 'top'
+                                },
+                            },
+                        },
+                        colors: partisipasiData.voted_pct.map(pct => {
+                            if (pct >= 75) return '#198754'; // hijau
+                            if (pct >= 40) return '#ffc107'; // kuning
+                            return '#dc3545'; // merah
+                        }),
+                        dataLabels: {
+                            enabled: true,
+                            formatter: (val) => val + '%',
+                            offsetY: -20,
+                            style: {
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                colors: ['#1a2e1a'],
+                            },
+                        },
+                        xaxis: {
+                            categories: partisipasiData.labels,
+                            labels: {
+                                style: {
+                                    fontSize: '11px'
+                                },
+                            },
+                        },
+                        yaxis: {
+                            max: 100,
+                            labels: {
+                                formatter: (val) => val + '%',
+                            },
+                        },
+                        tooltip: {
+                            y: {
+                                formatter: (val, opts) => {
+                                    const idx = opts.dataPointIndex;
+                                    const voted = partisipasiData.voted_count[idx];
+                                    const total = partisipasiData.total_voters[idx];
+                                    return `${val}% (${voted}/${total} voter)`;
+                                },
+                            },
+                        },
+                        legend: {
+                            show: false
+                        },
+                    }
+                );
+
+                chartPartisipasi.render();
+
+                // ==========================================
+                // CHART 2: Status Pemilih (Donut)
+                // ==========================================
+                const statusData = @json($chartData['status_pemilih']);
+
+                const chartStatusPemilih = new ApexCharts(
+                    document.querySelector("#chartStatusPemilih"), {
+                        chart: {
+                            type: 'donut',
+                            height: 320,
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                        },
+                        series: [
+                            statusData.verified,
+                            statusData.pending,
+                            statusData.rejected,
+                        ],
+                        labels: ['Terverifikasi', 'Menunggu', 'Ditolak'],
+                        colors: ['#198754', '#ffc107', '#dc3545'],
+                        legend: {
+                            position: 'bottom',
+                            fontSize: '12px',
+                        },
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '65%',
+                                    labels: {
+                                        show: true,
+                                        total: {
+                                            show: true,
+                                            label: 'Total',
+                                            fontSize: '13px',
+                                            color: '#6c757d',
+                                            formatter: (w) => {
+                                                const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                                return total;
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        dataLabels: {
+                            enabled: true,
+                            formatter: (val, opts) => {
+                                const total = opts.w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                if (total === 0) return '0%';
+                                const count = opts.w.globals.series[opts.seriesIndex];
+                                return count > 0 ? count : '';
+                            },
+                        },
+                        tooltip: {
+                            y: {
+                                formatter: (val) => val + ' voter',
+                            },
+                        },
+                    }
+                );
+
+                chartStatusPemilih.render();
+
+                // ==========================================
+                // CHART 3: Trend Voting (Line) — kalau ada
+                // ==========================================
+                @if (count($chartData['trend_voting']['labels']) > 0)
+                    const trendData = @json($chartData['trend_voting']);
+
+                    const chartTrendVoting = new ApexCharts(
+                        document.querySelector("#chartTrendVoting"), {
+                            chart: {
+                                type: 'area',
+                                height: 250,
+                                toolbar: {
+                                    show: false
+                                },
+                                fontFamily: 'system-ui, -apple-system, sans-serif',
+                            },
+                            series: [{
+                                name: 'Vote',
+                                data: trendData.counts,
+                            }],
+                            xaxis: {
+                                categories: trendData.labels,
+                            },
+                            yaxis: {
+                                labels: {
+                                    formatter: (val) => Math.round(val),
+                                },
+                            },
+                            colors: ['#0d6efd'],
+                            fill: {
+                                type: 'gradient',
+                                gradient: {
+                                    shadeIntensity: 0.5,
+                                    opacityFrom: 0.7,
+                                    opacityTo: 0.1,
+                                },
+                            },
+                            stroke: {
+                                curve: 'smooth',
+                                width: 3,
+                            },
+                            dataLabels: {
+                                enabled: false
+                            },
+                            markers: {
+                                size: 5,
+                                hover: {
+                                    size: 7
+                                },
+                            },
+                            tooltip: {
+                                y: {
+                                    formatter: (val) => val + ' vote',
+                                },
+                            },
+                        }
+                    );
+
+                    chartTrendVoting.render();
+                @endif
+            });
+        </script>
+    @endif
+
+
     <script>
         (function() {
             const url = "{{ route('admin.dashboard.live-stats') }}";

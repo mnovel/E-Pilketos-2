@@ -8,11 +8,14 @@ use App\Enums\UserRole;
 use App\Enums\VoterStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CheckinDevice;
+use App\Models\ClassRoom;
 use App\Models\Election;
 use App\Models\User;
+use App\Models\Vote;
 use App\Models\VotingDevice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -31,7 +34,183 @@ class DashboardController extends Controller
             ];
         });
 
-        return view('admin.dashboard', compact('stats'));
+        // ✅ Chart data — cache 60 detik
+        $chartData = Cache::remember('admin.dashboard.charts', 60, function () {
+            return $this->buildChartData();
+        });
+
+        return view('admin.dashboard', compact('stats', 'chartData'));
+    }
+
+    /**
+     * Build data untuk semua chart.
+     */
+    private function buildChartData(): array
+    {
+        $activeElection = Election::where('status', ElectionStatus::ACTIVE)
+            ->where('start_at', '<=', now())
+            ->where('end_at', '>', now())
+            ->first();
+
+        // ==========================================
+        // CHART 1: Partisipasi per Kelas (Bar)
+        // ==========================================
+        $partisipasiPerKelas = $this->getPartisipasiPerKelas($activeElection);
+
+        // ==========================================
+        // CHART 2: Status Pemilih (Donut)
+        // ==========================================
+        $statusPemilih = [
+            'verified' => User::where('role', UserRole::VOTER)->where('status', VoterStatus::VERIFIED)->count(),
+            'pending'  => User::where('role', UserRole::VOTER)->where('status', VoterStatus::PENDING)->count(),
+            'rejected' => User::where('role', UserRole::VOTER)->where('status', VoterStatus::REJECTED)->count(),
+        ];
+
+        // ==========================================
+        // CHART 3: Trend Voting Per Jam (Line)
+        // ==========================================
+        $trendVoting = $this->getTrendVotingPerJam($activeElection);
+
+        return [
+            'has_active_election'   => $activeElection !== null,
+            'election_title'        => $activeElection?->title,
+            'partisipasi_per_kelas' => $partisipasiPerKelas,
+            'status_pemilih'        => $statusPemilih,
+            'trend_voting'          => $trendVoting,
+        ];
+    }
+
+    /**
+     * Partisipasi per kelas untuk election aktif.
+     */
+    private function getPartisipasiPerKelas(?Election $election): array
+    {
+        $empty = [
+            'labels'       => [],
+            'voted_pct'    => [],
+            'voted_count'  => [],
+            'total_voters' => [],
+        ];
+
+        if (!$election) {
+            return $empty;
+        }
+
+        // ✅ Cek apakah ada voter di election ini
+        $hasVoters = DB::table('voters')
+            ->where('election_id', $election->id)
+            ->exists();
+
+        if (!$hasVoters) {
+            return $empty;
+        }
+
+        // ✅ Query aggregation per kelas
+        $stats = DB::table('voters')
+            ->join('classes', 'voters.class_id', '=', 'classes.id')
+            ->where('voters.election_id', $election->id)
+            ->select(
+                'classes.name as class_name',
+                DB::raw('COUNT(voters.id) as total'),
+                DB::raw('SUM(CASE WHEN voters.has_voted = 1 THEN 1 ELSE 0 END) as voted')
+            )
+            ->groupBy('classes.id', 'classes.name')
+            ->orderBy('classes.name')
+            ->get();
+
+        $labels = [];
+        $votedPct = [];
+        $votedCount = [];
+        $totalVoters = [];
+
+        foreach ($stats as $row) {
+            $total = (int) $row->total;
+            $voted = (int) $row->voted;
+            $pct = $total > 0 ? round(($voted / $total) * 100, 1) : 0.0;
+
+            $labels[]      = $row->class_name;
+            $votedPct[]    = $pct;
+            $votedCount[]  = $voted;
+            $totalVoters[] = $total;
+        }
+
+        return [
+            'labels'       => $labels,
+            'voted_pct'    => $votedPct,
+            'voted_count'  => $votedCount,
+            'total_voters' => $totalVoters,
+        ];
+    }
+
+    /**
+     * Trend voting per jam.
+     */
+    private function getTrendVotingPerJam(?Election $election): array
+    {
+        $emptyTrend = [
+            'labels' => [],
+            'counts' => [],
+        ];
+
+        if (!$election) {
+            return $emptyTrend;
+        }
+
+        // ✅ Deteksi driver — HOUR() hanya ada di MySQL, SQLite pakai strftime
+        $driver = DB::connection()->getDriverName();
+
+        $hourExpr = $driver === 'sqlite'
+            ? "strftime('%H', created_at)"
+            : 'HOUR(created_at)';
+
+        // ✅ Cek ada vote sama sekali
+        $hasVotes = Vote::where('election_id', $election->id)->exists();
+
+        if (!$hasVotes) {
+            return $emptyTrend;
+        }
+
+        // ✅ Query per jam
+        $votes = Vote::where('election_id', $election->id)
+            ->select(
+                DB::raw("$hourExpr as hour_alias"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy(DB::raw($hourExpr))
+            ->orderBy(DB::raw($hourExpr))
+            ->pluck('total', 'hour_alias')
+            ->toArray();
+
+        if (empty($votes)) {
+            return $emptyTrend;
+        }
+
+        // ✅ NORMALIZE KEYS ke integer
+        // SQLite return "08" (string), MySQL return 8 (int).
+        // PHP array key: "10" → int 10, tapi "08" & "09" tetap string (leading zero).
+        // Jadi kita paksa semua key jadi int biar lookup konsisten.
+        $normalizedVotes = [];
+        foreach ($votes as $hour => $count) {
+            $normalizedVotes[(int) $hour] = (int) $count;
+        }
+        $votes = $normalizedVotes;
+
+        // Range jam (min sampai max)
+        $minHour = min(array_keys($votes));
+        $maxHour = max(array_keys($votes));
+
+        $labels = [];
+        $counts = [];
+
+        for ($h = $minHour; $h <= $maxHour; $h++) {
+            $labels[] = str_pad($h, 2, '0', STR_PAD_LEFT) . ':00';
+            $counts[] = (int) ($votes[$h] ?? 0);
+        }
+
+        return [
+            'labels' => $labels,
+            'counts' => $counts,
+        ];
     }
 
     /**
@@ -40,7 +219,6 @@ class DashboardController extends Controller
     public function liveStats(): JsonResponse
     {
         // ✅ Cache 5 detik — endpoint ini dipolling tiap 10 detik
-        // Kalau 3 admin buka dashboard, tetap 1 query per 5 detik
         $data = Cache::remember('admin.live_stats', 5, function () {
             $onlineThreshold = now()->subMinutes(2);
 
@@ -75,7 +253,7 @@ class DashboardController extends Controller
                     'voting_total'      => VotingDevice::where('election_id', $activeElection->id)->count(),
                     'participation_pct' => $totalVoters > 0
                         ? round(($totalVoted / $totalVoters) * 100, 2)
-                        : 0,
+                        : 0.0,
                 ];
             }
 

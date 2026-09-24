@@ -15,17 +15,16 @@ class HomeController extends Controller
      */
     public function index(): View
     {
-        // ✅ Cache 60 detik — home page paling sering diakses
-        $activeElection = Cache::remember('home.active_election', 60, function () {
+        // ✅ Cache hanya ID (bukan model) — hindari error unserialize Eloquent
+        $activeElectionId = Cache::remember('home.active_election_id', 60, function () {
             // Prioritas 1: election yang SEDANG aktif
-            $active = Election::where('status', ElectionStatus::ACTIVE)
+            $id = Election::where('status', ElectionStatus::ACTIVE)
                 ->where('start_at', '<=', now())
                 ->where('end_at', '>', now())
-                ->with(['candidates' => fn($q) => $q->orderBy('no_urut')])
-                ->first();
+                ->value('id');
 
-            if ($active) {
-                return $active;
+            if ($id) {
+                return $id;
             }
 
             // Prioritas 2: election yang akan datang / draft
@@ -34,16 +33,26 @@ class HomeController extends Controller
                 ElectionStatus::ACTIVE,
             ])
                 ->orderBy('start_at')
-                ->with(['candidates' => fn($q) => $q->orderBy('no_urut')])
-                ->first();
+                ->value('id');
         });
 
-        // ✅ Cache 5 menit — published election jarang berubah
-        $publishedElection = Cache::remember('home.published_election', 300, function () {
+        // Query fresh dengan relasi (tidak di-cache supaya aman)
+        $activeElection = $activeElectionId
+            ? Election::with([
+                'candidates' => fn($q) => $q->orderBy('no_urut')->with('classRoom'),
+            ])->find($activeElectionId)
+            : null;
+
+        // ✅ Sama untuk published election
+        $publishedElectionId = Cache::remember('home.published_election_id', 300, function () {
             return Election::where('status', ElectionStatus::PUBLISHED)
                 ->latest('hasil_published_at')
-                ->first();
+                ->value('id');
         });
+
+        $publishedElection = $publishedElectionId
+            ? Election::find($publishedElectionId)
+            : null;
 
         return view('home', compact('activeElection', 'publishedElection'));
     }

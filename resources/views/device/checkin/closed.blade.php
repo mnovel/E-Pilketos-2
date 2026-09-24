@@ -6,61 +6,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Device Ditutup - Pilketos</title>
-    <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
+
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
-    <style>
-        body {
-            background: #1a2e1a;
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: system-ui, sans-serif;
-            margin: 0;
-        }
 
-        .closed-card {
-            background: white;
-            color: #1a2e1a;
-            border-radius: 24px;
-            padding: 60px 40px;
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-
-        .closed-icon {
-            font-size: 5rem;
-            color: #dc3545;
-        }
-    </style>
+    {{-- Tailwind CDN --}}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#1a2e1a',
+                            mid: '#2d5a3d',
+                            lime: '#c6f135',
+                            limeHover: '#a8d92d',
+                            cream: '#e8f5c8',
+                            deep: '#0f1f0f',
+                        },
+                    },
+                },
+            },
+        };
+    </script>
 </head>
 
-<body>
+<body class="bg-brand-dark text-white min-h-screen flex items-center justify-center font-sans m-0">
 
-    <div class="closed-card">
-        <i class="bi bi-power closed-icon"></i>
-        <h2 class="mt-4 mb-2">Device Ditutup</h2>
-        <p class="text-muted mb-4">
+    <div class="bg-white text-brand-dark rounded-3xl px-8 py-14 md:px-10 md:py-16 text-center max-w-lg w-[90%] shadow-2xl">
+
+        {{-- Icon --}}
+        <i class="bi bi-power text-rose-500 text-8xl block"></i>
+
+        <h2 class="mt-6 mb-2 text-2xl font-bold">Device Ditutup</h2>
+        <p class="text-slate-500 mb-6">
             Device check-in sudah ditutup. Siswa tidak bisa check-in sampai device dibuka kembali.
         </p>
 
-        <div class="alert alert-warning small mb-4">
-            <i class="bi bi-exclamation-triangle"></i>
-            <strong>Pastikan ini disengaja.</strong>
-            Klik tombol di bawah kalau mau buka lagi.
+        {{-- Warning --}}
+        <div class="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl px-4 py-3 text-sm mb-6 text-left inline-flex items-start gap-2">
+            <i class="bi bi-exclamation-triangle mt-0.5"></i>
+            <span>
+                <strong>Pastikan ini disengaja.</strong>
+                Klik tombol di bawah kalau mau buka lagi.
+            </span>
         </div>
 
+        {{-- Reopen button --}}
         <form action="{{ route('device.checkin.reopen') }}" method="POST">
             @csrf
-            <button type="submit" class="btn btn-lg w-100" style="background: #c6f135; color: #1a2e1a; font-weight: 700; padding: 16px;">
+            <button type="submit"
+                class="w-full bg-brand-lime hover:bg-brand-limeHover text-brand-dark font-bold text-lg rounded-xl py-4 inline-flex items-center justify-center gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30">
                 <i class="bi bi-power"></i> Buka Device Lagi
             </button>
         </form>
 
-        <p class="text-muted small mt-4 mb-0">
+        <p class="text-slate-500 text-sm mt-6 mb-0">
             Untuk keluar dari mode kiosk, tutup tab browser ini.
         </p>
     </div>

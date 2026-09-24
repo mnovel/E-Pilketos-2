@@ -33,10 +33,13 @@ class DashboardController extends Controller
                 })->where('has_voted', true)->count(),
             ];
 
+            $chartData = $this->buildChartData($activeSessions);
+
             return [
                 'activeSessions' => $activeSessions,
                 'todaySessions'  => $todaySessions,
                 'stats'          => $stats,
+                'chartData'      => $chartData,
             ];
         });
 
@@ -44,6 +47,74 @@ class DashboardController extends Controller
             'activeSessions' => $data['activeSessions'],
             'todaySessions'  => $data['todaySessions'],
             'stats'          => $data['stats'],
+            'chartData'      => $data['chartData'],
         ]);
+    }
+
+    /**
+     * Build data untuk chart.
+     */
+    private function buildChartData($activeSessions): array
+    {
+        // ==========================================
+        // CHART 1: Partisipasi per Sesi Aktif
+        // ==========================================
+        $labels = [];
+        $votedPct = [];
+        $votedCount = [];
+        $checkedInPct = [];
+        $checkedInCount = [];
+        $totalVoters = [];
+
+        foreach ($activeSessions as $session) {
+            $total = $session->voters()->count();
+            $voted = $session->voters()->where('has_voted', true)->count();
+            $checkedIn = $session->voters()->where('checked_in', true)->count();
+
+            $labels[]       = $session->classRoom?->name ?? '-';
+            $votedPct[]     = $total > 0 ? round(($voted / $total) * 100, 1) : 0.0;
+            $votedCount[]   = $voted;
+            $checkedInPct[] = $total > 0 ? round(($checkedIn / $total) * 100, 1) : 0.0;
+            $checkedInCount[] = $checkedIn;
+            $totalVoters[]  = $total;
+        }
+
+        $partisipasiSesi = [
+            'labels'           => $labels,
+            'voted_pct'        => $votedPct,
+            'voted_count'      => $votedCount,
+            'checked_in_pct'   => $checkedInPct,
+            'checked_in_count' => $checkedInCount,
+            'total_voters'     => $totalVoters,
+        ];
+
+        // ==========================================
+        // CHART 2: Total Partisipasi Hari Ini (Gauge)
+        // ==========================================
+        $totalVotersToday = Voter::whereHas('session', function ($q) {
+            $q->whereDate('tanggal', today());
+        })->count();
+
+        $totalVotedToday = Voter::whereHas('session', function ($q) {
+            $q->whereDate('tanggal', today());
+        })->where('has_voted', true)->count();
+
+        // ✅ Float consistency
+        $partisipasiPct = $totalVotersToday > 0
+            ? round(($totalVotedToday / $totalVotersToday) * 100, 1)
+            : 0.0;
+
+        $gaugePartisipasi = [
+            'percentage'   => $partisipasiPct,
+            'total_voters' => $totalVotersToday,
+            'total_voted'  => $totalVotedToday,
+            'total_golput' => max(0, $totalVotersToday - $totalVotedToday),
+        ];
+
+        return [
+            'partisipasi_sesi'   => $partisipasiSesi,
+            'gauge_partisipasi'  => $gaugePartisipasi,
+            'has_active_session' => $activeSessions->count() > 0,
+        ];
     }
 }

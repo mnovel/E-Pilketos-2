@@ -4,682 +4,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pilketos Digital — Pemilihan Ketua OSIS</title>
-    <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
+    <title>{{ config('app.name', 'Pilketos') }} — Pemilihan Ketua OSIS</title>
+
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
 
+    {{-- Tailwind CDN --}}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#1a2e1a',
+                            mid: '#2d5a3d',
+                            lime: '#c6f135',
+                            limeHover: '#a8d92d',
+                            cream: '#e8f5c8',
+                            deep: '#0f1f0f',
+                        },
+                    },
+                },
+            },
+        };
+    </script>
+
+    {{-- Alpine.js --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {{-- Hanya untuk mencegah flash sebelum Alpine load --}}
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #f5f7fa;
-            overflow-x: hidden;
-        }
-
-        /* ==========================================
-           HEADER
-           ========================================== */
-        .lp-header {
-            background: #1a2e1a;
-            color: white;
-            padding: 18px 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .lp-brand {
-            color: #c6f135;
-            font-weight: 800;
-            font-size: 1.5rem;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .lp-brand:hover {
-            color: #c6f135;
-        }
-
-        .lp-nav {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .lp-nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .lp-nav-link:hover {
-            color: #c6f135;
-            background: rgba(198, 241, 53, 0.1);
-        }
-
-        .lp-nav-btn {
-            background: #c6f135;
-            color: #1a2e1a;
-            padding: 8px 20px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-
-        .lp-nav-btn:hover {
-            background: #a8d92d;
-            color: #1a2e1a;
-            transform: translateY(-2px);
-        }
-
-        /* ==========================================
-           HERO
-           ========================================== */
-        .lp-hero {
-            background: linear-gradient(135deg, #1a2e1a 0%, #2d5a3d 100%);
-            color: white;
-            padding: 80px 0 100px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .lp-hero::before {
-            content: '';
-            position: absolute;
-            width: 600px;
-            height: 600px;
-            background: #c6f135;
-            border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.15;
-            top: -200px;
-            right: -200px;
-        }
-
-        .lp-hero::after {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: #a8d92d;
-            border-radius: 50%;
-            filter: blur(100px);
-            opacity: 0.1;
-            bottom: -150px;
-            left: -150px;
-        }
-
-        .lp-hero-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .lp-hero-badge {
-            display: inline-block;
-            background: rgba(198, 241, 53, 0.15);
-            color: #c6f135;
-            padding: 8px 18px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 24px;
-            border: 1px solid rgba(198, 241, 53, 0.3);
-        }
-
-        .lp-hero h1 {
-            font-size: 3.2rem;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 20px;
-        }
-
-        .lp-hero h1 span {
-            color: #c6f135;
-        }
-
-        .lp-hero p {
-            font-size: 1.1rem;
-            opacity: 0.85;
-            max-width: 500px;
-            margin-bottom: 32px;
-            line-height: 1.6;
-        }
-
-        .lp-hero-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .lp-btn {
-            padding: 14px 32px;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.95rem;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .lp-btn-primary {
-            background: #c6f135;
-            color: #1a2e1a;
-        }
-
-        .lp-btn-primary:hover {
-            background: #a8d92d;
-            color: #1a2e1a;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(198, 241, 53, 0.3);
-        }
-
-        .lp-btn-outline {
-            background: transparent;
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .lp-btn-outline:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* Hero Illustration */
-        .lp-hero-illustration {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .lp-hero-icon {
-            width: 280px;
-            height: 280px;
-            background: rgba(198, 241, 53, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            animation: float 4s ease-in-out infinite;
-        }
-
-        .lp-hero-icon i {
-            font-size: 8rem;
-            color: #c6f135;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-15px);
-            }
-        }
-
-        /* ==========================================
-           COUNTDOWN CARD
-           ========================================== */
-        .countdown-section {
-            margin-top: -60px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .countdown-card {
-            background: white;
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        .countdown-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .countdown-grid {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .countdown-box {
-            background: #1a2e1a;
-            color: white;
-            border-radius: 16px;
-            padding: 20px 24px;
-            min-width: 100px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .countdown-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: #c6f135;
-        }
-
-        .countdown-value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            line-height: 1;
-            color: #c6f135;
-        }
-
-        .countdown-unit {
-            font-size: 0.75rem;
-            opacity: 0.6;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 8px;
-        }
-
-        /* ==========================================
-           LIVE STATUS
-           ========================================== */
-        .status-live {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: #d1e7dd;
-            color: #0f5132;
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-
-        .status-dot-live {
-            width: 10px;
-            height: 10px;
-            background: #198754;
-            border-radius: 50%;
-            animation: blink 1.5s ease-in-out infinite;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.3;
-            }
-        }
-
-        /* ==========================================
-           FEATURES SECTION
-           ========================================== */
-        .features-section {
-            padding: 80px 0;
-        }
-
-        .features-title {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-
-        .features-title h2 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #1a2e1a;
-            margin-bottom: 12px;
-        }
-
-        .features-title p {
-            color: #6c757d;
-            font-size: 1.05rem;
-        }
-
-        .feature-card {
-            background: white;
-            border-radius: 20px;
-            padding: 32px;
-            height: 100%;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
-            border-color: #c6f135;
-        }
-
-        .feature-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        .feature-icon i {
-            font-size: 1.8rem;
-        }
-
-        .feature-card h4 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #1a2e1a;
-            margin-bottom: 10px;
-        }
-
-        .feature-card p {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin: 0;
-            line-height: 1.6;
-        }
-
-        /* ==========================================
-           CANDIDATES SECTION
-           ========================================== */
-        .candidates-section {
-            padding: 80px 0;
-            background: white;
-        }
-
-        .candidate-card {
-            background: #f8f9fa;
-            border-radius: 20px;
-            padding: 32px 24px;
-            text-align: center;
-            transition: all 0.3s;
-            height: 100%;
-            border: 2px solid transparent;
-        }
-
-        .candidate-card:hover {
-            transform: translateY(-8px);
-            border-color: #c6f135;
-            background: white;
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .candidate-photo {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 0 auto 16px;
-            border: 4px solid #c6f135;
-            display: block;
-        }
-
-        .candidate-photo-placeholder {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: #c6f135;
-            color: #1a2e1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 16px;
-            font-weight: 700;
-            font-size: 3rem;
-            border: 4px solid #e8f5c8;
-        }
-
-        .candidate-no {
-            display: inline-block;
-            background: #1a2e1a;
-            color: #c6f135;
-            padding: 4px 14px;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-        }
-
-        .candidate-name {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #1a2e1a;
-            margin-bottom: 4px;
-        }
-
-        .candidate-class {
-            color: #6c757d;
-            font-size: 0.85rem;
-            margin-bottom: 16px;
-        }
-
-        .candidate-visi {
-            color: #495057;
-            font-size: 0.85rem;
-            font-style: italic;
-            line-height: 1.5;
-            max-height: 60px;
-            overflow: hidden;
-        }
-
-        /* ==========================================
-           CTA SECTION
-           ========================================== */
-        .cta-section {
-            background: linear-gradient(135deg, #1a2e1a 0%, #2d5a3d 100%);
-            color: white;
-            padding: 80px 0;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cta-section::before {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: #c6f135;
-            border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.15;
-            top: -100px;
-            right: -100px;
-        }
-
-        .cta-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .cta-section h2 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-
-        .cta-section p {
-            opacity: 0.85;
-            margin-bottom: 32px;
-            font-size: 1.05rem;
-        }
-
-        /* ==========================================
-           FOOTER
-           ========================================== */
-        .lp-footer {
-            background: #0f1f0f;
-            color: rgba(255, 255, 255, 0.6);
-            padding: 32px 0;
-            text-align: center;
-            font-size: 0.85rem;
-        }
-
-        .lp-footer a {
-            color: #c6f135;
-            text-decoration: none;
-        }
-
-        /* ==========================================
-           RESPONSIVE
-           ========================================== */
-        @media (max-width: 768px) {
-            .lp-hero h1 {
-                font-size: 2.2rem;
-            }
-
-            .lp-hero {
-                padding: 50px 0 80px;
-            }
-
-            .lp-hero-icon {
-                width: 200px;
-                height: 200px;
-            }
-
-            .lp-hero-icon i {
-                font-size: 5rem;
-            }
-
-            .countdown-box {
-                padding: 16px 18px;
-                min-width: 80px;
-            }
-
-            .countdown-value {
-                font-size: 1.8rem;
-            }
-
-            .features-title h2 {
-                font-size: 1.8rem;
-            }
-
-            .cta-section h2 {
-                font-size: 1.8rem;
-            }
+        [x-cloak] {
+            display: none !important;
         }
     </style>
 </head>
 
-<body>
+<body class="bg-slate-100 text-slate-800 font-sans overflow-x-hidden">
 
     {{-- ==========================================
          HEADER
          ========================================== --}}
-    <header class="lp-header">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <a href="{{ url('/') }}" class="lp-brand">
-                    <i class="bi bi-asterisk"></i>
-                    Pilketos
+    <header class="bg-brand-dark text-white py-4 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <a href="{{ url('/') }}" class="text-brand-lime font-extrabold text-2xl flex items-center gap-2 hover:text-brand-lime">
+                <i class="bi bi-asterisk"></i> Pilketos
+            </a>
+
+            <nav class="flex gap-2 items-center">
+                <a href="{{ route('cek-status.index') }}"
+                    class="hidden md:inline-flex items-center gap-1 text-white/80 hover:text-brand-lime hover:bg-brand-lime/10 px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <i class="bi bi-search"></i> Cek Status
+                </a>
+                <a href="{{ route('hasil.index') }}"
+                    class="hidden md:inline-flex items-center gap-1 text-white/80 hover:text-brand-lime hover:bg-brand-lime/10 px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <i class="bi bi-trophy"></i> Hasil
                 </a>
 
-                <nav class="lp-nav">
-                    <a href="{{ route('cek-status.index') }}" class="lp-nav-link d-none d-md-inline-flex">
-                        <i class="bi bi-search"></i> Cek Status
+                @auth
+                    <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}"
+                        class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark px-5 py-2 rounded-lg font-bold text-sm transition hover:-translate-y-0.5 inline-flex items-center gap-1.5">
+                        <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a href="{{ route('hasil.index') }}" class="lp-nav-link d-none d-md-inline-flex">
-                        <i class="bi bi-trophy"></i> Hasil
+                @else
+                    <a href="{{ route('login') }}"
+                        class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark px-5 py-2 rounded-lg font-bold text-sm transition hover:-translate-y-0.5 inline-flex items-center gap-1.5">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
                     </a>
-
-                    @auth
-                        <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}"
-                            class="lp-nav-btn">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                    @else
-                        <a href="{{ route('login') }}" class="lp-nav-btn">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
-                        </a>
-                    @endauth
-                </nav>
-            </div>
+                @endauth
+            </nav>
         </div>
     </header>
 
     {{-- ==========================================
          HERO
          ========================================== --}}
-    <section class="lp-hero">
-        <div class="container">
-            <div class="row align-items-center">
+    <section class="relative overflow-hidden text-white py-16 md:py-24 bg-gradient-to-br from-brand-dark to-brand-mid">
+        {{-- Dekorasi blur --}}
+        <div class="absolute -top-52 -right-52 w-[600px] h-[600px] bg-brand-lime rounded-full blur-[120px] opacity-15 pointer-events-none"></div>
+        <div class="absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-brand-limeHover rounded-full blur-[100px] opacity-10 pointer-events-none"></div>
 
-                <div class="col-lg-7 lp-hero-content">
-                    <div class="lp-hero-badge">
-                        <i class="bi bi-shield-check"></i>
-                        Sistem Pemilihan Digital
-                    </div>
+        <div class="relative max-w-7xl mx-auto px-4 grid lg:grid-cols-12 gap-8 items-center">
+            <div class="lg:col-span-7">
+                <div class="inline-block bg-brand-lime/15 text-brand-lime border border-brand-lime/30 px-4 py-2 rounded-full text-sm font-semibold mb-6">
+                    <i class="bi bi-shield-check"></i> Sistem Pemilihan Digital
+                </div>
 
-                    <h1>
-                        Pemilihan Ketua OSIS <br>
-                        <span>Digital & Modern</span>
-                    </h1>
+                <h1 class="text-4xl md:text-5xl lg:text-[3.2rem] font-extrabold leading-tight mb-5">
+                    Pemilihan Ketua OSIS <br>
+                    <span class="text-brand-lime">Digital & Modern</span>
+                </h1>
 
-                    <p>
-                        Suara Anda menentukan masa depan sekolah.
-                        Voting cepat, aman, dan transparan dengan teknologi QR Code.
-                    </p>
+                <p class="text-lg opacity-85 max-w-xl mb-8 leading-relaxed">
+                    Suara Anda menentukan masa depan sekolah.
+                    Voting cepat, aman, dan transparan dengan teknologi QR Code.
+                </p>
 
-                    <div class="lp-hero-actions">
-                        @if ($activeElection && $activeElection->status === \App\Enums\ElectionStatus::ACTIVE)
-                            <a href="{{ auth()->check() ? (auth()->user()->isVoter() ? route('voter.scan') : '#') : route('login') }}" class="lp-btn lp-btn-primary">
-                                <i class="bi bi-qr-code-scan"></i>
-                                Mulai Voting
-                            </a>
-                        @elseif ($activeElection)
-                            <a href="{{ auth()->check() ? route('login') : route('register') }}" class="lp-btn lp-btn-primary">
-                                <i class="bi bi-person-plus"></i>
-                                Daftar Sekarang
-                            </a>
-                        @endif
-
-                        <a href="{{ route('cek-status.index') }}" class="lp-btn lp-btn-outline">
-                            <i class="bi bi-search"></i>
-                            Cek Status
+                <div class="flex flex-wrap gap-3">
+                    @if ($activeElection && $activeElection->status === \App\Enums\ElectionStatus::ACTIVE)
+                        <a href="{{ auth()->check() ? (auth()->user()->isVoter() ? route('voter.scan') : '#') : route('login') }}"
+                            class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark px-8 py-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30">
+                            <i class="bi bi-qr-code-scan"></i> Mulai Voting
                         </a>
-                    </div>
-                </div>
+                    @elseif ($activeElection)
+                        <a href="{{ auth()->check() ? route('login') : route('register') }}"
+                            class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark px-8 py-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30">
+                            <i class="bi bi-person-plus"></i> Daftar Sekarang
+                        </a>
+                    @endif
 
-                <div class="col-lg-5 lp-hero-illustration d-none d-lg-flex">
-                    <div class="lp-hero-icon">
-                        <i class="bi bi-check2-square"></i>
-                    </div>
+                    <a href="{{ route('cek-status.index') }}"
+                        class="border-2 border-white/30 hover:bg-white/10 hover:border-white/50 text-white px-8 py-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition">
+                        <i class="bi bi-search"></i> Cek Status
+                    </a>
                 </div>
+            </div>
 
+            <div class="hidden lg:flex lg:col-span-5 items-center justify-center">
+                <div class="w-[280px] h-[280px] rounded-full bg-brand-lime/10 flex items-center justify-center animate-[float_4s_ease-in-out_infinite]">
+                    <i class="bi bi-check2-square text-brand-lime text-[8rem]"></i>
+                </div>
             </div>
         </div>
     </section>
@@ -688,73 +132,75 @@
          COUNTDOWN / STATUS CARD
          ========================================== --}}
     @if ($activeElection)
-        <section class="countdown-section">
-            <div class="container">
-                <div class="countdown-card">
+        <section class="relative z-10 -mt-14">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="bg-white rounded-3xl shadow-2xl p-6 md:p-10 text-center">
 
                     @if ($activeElection->status === \App\Enums\ElectionStatus::ACTIVE)
-                        {{-- LIVE STATUS --}}
-                        <div class="status-live">
-                            <span class="status-dot-live"></span>
+                        <div class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full text-sm font-bold mb-4">
+                            <span class="w-2.5 h-2.5 bg-emerald-600 rounded-full animate-pulse"></span>
                             SEDANG BERLANGSUNG
                         </div>
-                        <h3 class="mb-2">{{ $activeElection->title }}</h3>
-                        <p class="text-muted mb-4">
+                        <h3 class="text-xl md:text-2xl font-bold text-brand-dark mb-2">{{ $activeElection->title }}</h3>
+                        <p class="text-slate-500 mb-6">
                             Voting sedang berlangsung sampai
-                            <strong>{{ $activeElection->end_at->translatedFormat('d M Y, H:i') }}</strong>
+                            <strong class="text-brand-dark">{{ $activeElection->end_at->translatedFormat('d M Y, H:i') }}</strong>
                         </p>
 
-                        <div class="countdown-label">Berakhir dalam</div>
-                        <div class="countdown-grid" id="countdown" data-target="{{ $activeElection->end_at->toIso8601String() }}">
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-days">0</div>
-                                <div class="countdown-unit">Hari</div>
+                        <div class="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-5">Berakhir dalam</div>
+                        <div class="flex gap-3 justify-center flex-wrap" id="countdown" data-target="{{ $activeElection->end_at->toIso8601String() }}">
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-days">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Hari</div>
                             </div>
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-hours">0</div>
-                                <div class="countdown-unit">Jam</div>
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-hours">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Jam</div>
                             </div>
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-minutes">0</div>
-                                <div class="countdown-unit">Menit</div>
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-minutes">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Menit</div>
                             </div>
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-seconds">0</div>
-                                <div class="countdown-unit">Detik</div>
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-seconds">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Detik</div>
                             </div>
                         </div>
                     @elseif (in_array($activeElection->status, [\App\Enums\ElectionStatus::DRAFT, \App\Enums\ElectionStatus::ACTIVE]))
-                        {{-- COUNTDOWN TO START --}}
-                        <div class="lp-hero-badge"
-                            style="background: rgba(255,193,7,0.15);
-                                                           color: #cc9a06;
-                                                           border-color: rgba(255,193,7,0.3);">
-                            <i class="bi bi-clock-history"></i>
-                            Segera Dimulai
+                        <div class="inline-block bg-amber-100 text-amber-700 border border-amber-300 px-4 py-2 rounded-full text-sm font-semibold mb-4">
+                            <i class="bi bi-clock-history"></i> Segera Dimulai
                         </div>
-                        <h3 class="mb-2">{{ $activeElection->title }}</h3>
-                        <p class="text-muted mb-4">
+                        <h3 class="text-xl md:text-2xl font-bold text-brand-dark mb-2">{{ $activeElection->title }}</h3>
+                        <p class="text-slate-500 mb-6">
                             Voting akan dimulai pada
-                            <strong>{{ $activeElection->start_at->translatedFormat('d M Y, H:i') }}</strong>
+                            <strong class="text-brand-dark">{{ $activeElection->start_at->translatedFormat('d M Y, H:i') }}</strong>
                         </p>
 
-                        <div class="countdown-label">Dimulai dalam</div>
-                        <div class="countdown-grid" id="countdown" data-target="{{ $activeElection->start_at->toIso8601String() }}">
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-days">0</div>
-                                <div class="countdown-unit">Hari</div>
+                        <div class="text-sm font-semibold text-slate-500 uppercase tracking-widest mb-5">Dimulai dalam</div>
+                        <div class="flex gap-3 justify-center flex-wrap" id="countdown" data-target="{{ $activeElection->start_at->toIso8601String() }}">
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-days">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Hari</div>
                             </div>
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-hours">0</div>
-                                <div class="countdown-unit">Jam</div>
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-hours">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Jam</div>
                             </div>
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-minutes">0</div>
-                                <div class="countdown-unit">Menit</div>
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-minutes">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Menit</div>
                             </div>
-                            <div class="countdown-box">
-                                <div class="countdown-value" id="cd-seconds">0</div>
-                                <div class="countdown-unit">Detik</div>
+                            <div class="bg-brand-dark text-white rounded-2xl px-5 py-4 md:px-6 min-w-[80px] md:min-w-[100px] relative overflow-hidden">
+                                <div class="absolute top-0 left-0 right-0 h-[3px] bg-brand-lime"></div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-lime leading-none" id="cd-seconds">0</div>
+                                <div class="text-[0.65rem] md:text-xs uppercase tracking-widest opacity-60 mt-2">Detik</div>
                             </div>
                         </div>
                     @endif
@@ -767,86 +213,248 @@
     {{-- ==========================================
          FEATURES
          ========================================== --}}
-    <section class="features-section">
-        <div class="container">
-            <div class="features-title">
-                <h2>Kenapa Pilketos Digital?</h2>
-                <p>Pemilihan modern, cepat, dan transparan</p>
+    <section class="py-16 md:py-20">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-brand-dark mb-3">Kenapa Pilketos Digital?</h2>
+                <p class="text-slate-500 text-lg">Pemilihan modern, cepat, dan transparan</p>
             </div>
 
-            <div class="row g-4">
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background: #d1e7dd;">
-                            <i class="bi bi-lightning-charge-fill text-success"></i>
-                        </div>
-                        <h4>Cepat</h4>
-                        <p>Proses voting hanya 30 detik dengan scan QR code</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="bg-white rounded-3xl p-8 border-2 border-transparent shadow-md hover:shadow-xl hover:border-brand-lime hover:-translate-y-2 transition">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mb-5">
+                        <i class="bi bi-lightning-charge-fill text-emerald-600 text-3xl"></i>
                     </div>
+                    <h4 class="text-lg font-bold text-brand-dark mb-2">Cepat</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Proses voting hanya 30 detik dengan scan QR code</p>
                 </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background: #cfe2ff;">
-                            <i class="bi bi-shield-lock-fill text-primary"></i>
-                        </div>
-                        <h4>Aman</h4>
-                        <p>Suara anonim dan terenkripsi. Tidak ada yang tahu pilihan Anda</p>
+                <div class="bg-white rounded-3xl p-8 border-2 border-transparent shadow-md hover:shadow-xl hover:border-brand-lime hover:-translate-y-2 transition">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-100 flex items-center justify-center mb-5">
+                        <i class="bi bi-shield-lock-fill text-blue-600 text-3xl"></i>
                     </div>
+                    <h4 class="text-lg font-bold text-brand-dark mb-2">Aman</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Suara anonim dan terenkripsi. Tidak ada yang tahu pilihan Anda</p>
                 </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background: #fff3cd;">
-                            <i class="bi bi-graph-up-arrow" style="color: #cc9a06;"></i>
-                        </div>
-                        <h4>Transparan</h4>
-                        <p>Hasil real-time dan dapat dilihat setelah voting selesai</p>
+                <div class="bg-white rounded-3xl p-8 border-2 border-transparent shadow-md hover:shadow-xl hover:border-brand-lime hover:-translate-y-2 transition">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mb-5">
+                        <i class="bi bi-graph-up-arrow text-amber-600 text-3xl"></i>
                     </div>
+                    <h4 class="text-lg font-bold text-brand-dark mb-2">Transparan</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Hasil real-time dan dapat dilihat setelah voting selesai</p>
                 </div>
-
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card">
-                        <div class="feature-icon" style="background: #f8d7da;">
-                            <i class="bi bi-phone-fill text-danger"></i>
-                        </div>
-                        <h4>Modern</h4>
-                        <p>Cukup dengan HP dan QR code, tidak perlu kertas</p>
+                <div class="bg-white rounded-3xl p-8 border-2 border-transparent shadow-md hover:shadow-xl hover:border-brand-lime hover:-translate-y-2 transition">
+                    <div class="w-16 h-16 rounded-2xl bg-rose-100 flex items-center justify-center mb-5">
+                        <i class="bi bi-phone-fill text-rose-600 text-3xl"></i>
                     </div>
+                    <h4 class="text-lg font-bold text-brand-dark mb-2">Modern</h4>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Cukup dengan HP dan QR code, tidak perlu kertas</p>
                 </div>
             </div>
         </div>
     </section>
 
     {{-- ==========================================
-         CANDIDATES PREVIEW
+         CARA VOTE
+         ========================================== --}}
+    <section class="py-16 md:py-20 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-brand-dark mb-3">Cara Menggunakan Hak Suara</h2>
+                <p class="text-slate-500 text-lg">Hanya 4 langkah mudah, selesai dalam 30 detik</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-12 gap-x-5">
+                <div class="relative bg-white rounded-3xl px-6 pt-10 pb-8 text-center shadow-md hover:shadow-xl hover:-translate-y-1.5 transition">
+                    <div
+                        class="absolute -top-5 left-1/2 -translate-x-1/2 w-12 h-12 bg-brand-lime text-brand-dark rounded-full flex items-center justify-center font-extrabold text-xl border-4 border-white shadow-lg shadow-brand-lime/40">
+                        1</div>
+                    <div class="w-20 h-20 mx-auto rounded-full bg-brand-dark text-brand-lime flex items-center justify-center text-3xl my-4"><i class="bi bi-box-arrow-in-right"></i></div>
+                    <div class="text-lg font-bold text-brand-dark mb-2">Login Akun</div>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Login dengan NIS dan password yang diberikan panitia.</p>
+                </div>
+                <div class="relative bg-white rounded-3xl px-6 pt-10 pb-8 text-center shadow-md hover:shadow-xl hover:-translate-y-1.5 transition">
+                    <div
+                        class="absolute -top-5 left-1/2 -translate-x-1/2 w-12 h-12 bg-brand-lime text-brand-dark rounded-full flex items-center justify-center font-extrabold text-xl border-4 border-white shadow-lg shadow-brand-lime/40">
+                        2</div>
+                    <div class="w-20 h-20 mx-auto rounded-full bg-brand-dark text-brand-lime flex items-center justify-center text-3xl my-4"><i class="bi bi-geo-alt-fill"></i></div>
+                    <div class="text-lg font-bold text-brand-dark mb-2">Datang ke Bilik</div>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Datang ke bilik suara sesuai jadwal sesi kelas Anda.</p>
+                </div>
+                <div class="relative bg-white rounded-3xl px-6 pt-10 pb-8 text-center shadow-md hover:shadow-xl hover:-translate-y-1.5 transition">
+                    <div
+                        class="absolute -top-5 left-1/2 -translate-x-1/2 w-12 h-12 bg-brand-lime text-brand-dark rounded-full flex items-center justify-center font-extrabold text-xl border-4 border-white shadow-lg shadow-brand-lime/40">
+                        3</div>
+                    <div class="w-20 h-20 mx-auto rounded-full bg-brand-dark text-brand-lime flex items-center justify-center text-3xl my-4"><i class="bi bi-qr-code-scan"></i></div>
+                    <div class="text-lg font-bold text-brand-dark mb-2">Scan QR Code</div>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Scan QR di layar device untuk memulai voting.</p>
+                </div>
+                <div class="relative bg-white rounded-3xl px-6 pt-10 pb-8 text-center shadow-md hover:shadow-xl hover:-translate-y-1.5 transition">
+                    <div
+                        class="absolute -top-5 left-1/2 -translate-x-1/2 w-12 h-12 bg-brand-lime text-brand-dark rounded-full flex items-center justify-center font-extrabold text-xl border-4 border-white shadow-lg shadow-brand-lime/40">
+                        4</div>
+                    <div class="w-20 h-20 mx-auto rounded-full bg-brand-dark text-brand-lime flex items-center justify-center text-3xl my-4"><i class="bi bi-check2-square"></i></div>
+                    <div class="text-lg font-bold text-brand-dark mb-2">Pilih Kandidat</div>
+                    <p class="text-slate-500 text-sm leading-relaxed m-0">Pilih kandidat favorit Anda di layar device. Selesai!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- ==========================================
+         CANDIDATES SECTION
          ========================================== --}}
     @if ($activeElection && $activeElection->candidates->count() > 0)
-        <section class="candidates-section">
-            <div class="container">
-                <div class="features-title">
-                    <h2>Kenalan dengan Kandidat</h2>
-                    <p>{{ $activeElection->candidates->count() }} kandidat siap memimpin</p>
+        <section class="py-16 md:py-20 bg-white">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-brand-dark mb-3">Kenalan dengan Kandidat</h2>
+                    <p class="text-slate-500 text-lg">{{ $activeElection->candidates->count() }} kandidat siap memimpin OSIS</p>
                 </div>
 
-                <div class="row g-4 justify-content-center">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
                     @foreach ($activeElection->candidates as $c)
-                        <div class="col-md-6 col-lg-4">
-                            <div class="candidate-card">
-                                @if ($c->foto)
-                                    <img src="{{ asset('storage/' . $c->foto) }}" alt="{{ $c->nama }}" class="candidate-photo">
-                                @else
-                                    <div class="candidate-photo-placeholder">
-                                        {{ strtoupper(substr($c->nama, 0, 1)) }}
+                        <div x-data="{ open: false }" class="contents">
+                            {{-- Card Kandidat --}}
+                            <div class="bg-white rounded-3xl overflow-hidden border-2 border-slate-100 shadow-lg hover:shadow-2xl hover:border-brand-lime hover:-translate-y-2 transition">
+                                <div class="relative h-[240px] md:h-[260px] overflow-hidden bg-gradient-to-br from-brand-cream to-emerald-100 group">
+                                    @if ($c->foto)
+                                        <img src="{{ asset('storage/' . $c->foto) }}" alt="{{ $c->nama }}" class="w-full h-full object-cover transition duration-500 group-hover:scale-105">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center text-8xl font-extrabold text-brand-dark opacity-30">
+                                            {{ strtoupper(substr($c->nama, 0, 1)) }}
+                                        </div>
+                                    @endif
+                                    <div class="absolute top-4 left-4 bg-brand-dark text-brand-lime px-4 py-2 rounded-full text-sm font-extrabold shadow-lg">
+                                        No. {{ $c->no_urut }}
                                     </div>
-                                @endif
-
-                                <div class="candidate-no">No. {{ $c->no_urut }}</div>
-                                <div class="candidate-name">{{ $c->nama }}</div>
-                                <div class="candidate-class">
-                                    <i class="bi bi-mortarboard"></i> {{ $c->classRoom?->name ?? '-' }}
                                 </div>
-                                <div class="candidate-visi">"{{ Str::limit($c->visi, 100) }}"</div>
+
+                                <div class="p-6">
+                                    <div class="text-2xl font-extrabold text-brand-dark mb-1.5">{{ $c->nama }}</div>
+                                    <div class="text-slate-500 text-sm mb-4">
+                                        <i class="bi bi-mortarboard-fill mr-1"></i>
+                                        {{ $c->classRoom?->name ?? '-' }}
+                                    </div>
+
+                                    <div class="bg-slate-50 border-l-4 border-brand-lime rounded-lg px-4 py-3 mb-5">
+                                        <div class="text-[0.7rem] font-bold text-slate-500 uppercase tracking-wide mb-1">
+                                            <i class="bi bi-bullseye"></i> Visi
+                                        </div>
+                                        <p class="text-brand-dark text-sm italic leading-snug m-0 line-clamp-3">"{{ $c->visi }}"</p>
+                                    </div>
+
+                                    <button type="button" @click="$dispatch('open-candidate-{{ $c->id }}')"
+                                        class="w-full bg-brand-dark hover:bg-brand-mid text-brand-lime border-0 rounded-lg px-5 py-3 font-bold text-sm cursor-pointer inline-flex items-center justify-center gap-1.5 transition hover:-translate-y-0.5">
+                                        <i class="bi bi-info-circle"></i> Lihat Detail
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- ==========================================
+                                 MODAL DETAIL KANDIDAT
+                                 ========================================== --}}
+                            <div x-data="{ open: false }" @open-candidate-{{ $c->id }}.window="open = true" x-effect="document.body.style.overflow = open ? 'hidden' : ''" x-show="open"
+                                x-cloak @keydown.escape.window="open = false" class="fixed inset-0 z-50 flex items-center justify-center p-2 md:p-4">
+
+                                {{-- Backdrop --}}
+                                <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                                    x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @click="open = false"
+                                    class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+                                {{-- Panel --}}
+                                <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95"
+                                    x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100"
+                                    x-transition:leave-end="opacity-0 scale-95"
+                                    class="relative bg-white rounded-3xl max-w-3xl w-full max-h-[calc(100vh-1rem)] flex flex-col overflow-hidden shadow-2xl">
+
+                                    {{-- Header --}}
+                                    <div class="bg-gradient-to-br from-brand-dark to-brand-mid px-6 py-4 flex items-center justify-between shrink-0">
+                                        <div>
+                                            <div class="text-[0.68rem] uppercase tracking-widest text-white/70">Kandidat</div>
+                                            <h5 class="mb-0 text-lg font-bold text-brand-lime">
+                                                No. {{ $c->no_urut }} — {{ $c->nama }}
+                                            </h5>
+                                        </div>
+                                        <button type="button" @click="open = false"
+                                            class="text-white/80 hover:text-white text-2xl leading-none w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+
+                                    {{-- Body: 2 kolom (foto kiri | info + visi + misi + program kanan) --}}
+                                    <div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 md:gap-6 p-4 md:p-6 flex-1 min-h-0 overflow-y-auto">
+
+                                        {{-- Kolom Kiri: Foto --}}
+                                        <div class="w-full aspect-[16/9] md:aspect-[3/4] rounded-2xl overflow-hidden bg-gradient-to-br from-brand-cream to-emerald-100">
+                                            @if ($c->foto)
+                                                <img src="{{ asset('storage/' . $c->foto) }}" alt="{{ $c->nama }}" class="w-full h-full object-cover">
+                                            @else
+                                                <div class="w-full h-full flex items-center justify-center text-6xl md:text-7xl font-extrabold text-brand-dark opacity-30">
+                                                    {{ strtoupper(substr($c->nama, 0, 1)) }}
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        {{-- Kolom Kanan --}}
+                                        <div class="min-h-0">
+
+                                            {{-- Info di ATAS Visi --}}
+                                            <div class="grid grid-cols-3 gap-2 p-3 bg-slate-50 rounded-2xl mb-5">
+                                                <div class="text-center">
+                                                    <div class="text-[0.65rem] uppercase tracking-wider font-extrabold text-slate-500 mb-1">No. Urut</div>
+                                                    <div class="text-base font-extrabold text-brand-dark">{{ $c->no_urut }}</div>
+                                                </div>
+                                                <div class="text-center border-l border-dashed border-slate-300">
+                                                    <div class="text-[0.65rem] uppercase tracking-wider font-extrabold text-slate-500 mb-1">Kelas</div>
+                                                    <div class="text-base font-extrabold text-brand-dark">{{ $c->classRoom?->name ?? '-' }}</div>
+                                                </div>
+                                                <div class="text-center border-l border-dashed border-slate-300">
+                                                    <div class="text-[0.65rem] uppercase tracking-wider font-extrabold text-slate-500 mb-1">Nama</div>
+                                                    <div class="text-base font-extrabold text-brand-dark break-words">{{ $c->nama }}</div>
+                                                </div>
+                                            </div>
+
+                                            {{-- Visi --}}
+                                            <div class="mb-5 last:mb-0">
+                                                <span
+                                                    class="inline-flex items-center gap-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-brand-dark bg-brand-cream px-3 py-1 rounded-full mb-2">
+                                                    <i class="bi bi-bullseye"></i> Visi
+                                                </span>
+                                                <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line break-words m-0">
+                                                    {{ $c->visi }}
+                                                </p>
+                                            </div>
+
+                                            {{-- Misi --}}
+                                            @if ($c->misi)
+                                                <div class="mb-5 last:mb-0">
+                                                    <span
+                                                        class="inline-flex items-center gap-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-brand-dark bg-brand-cream px-3 py-1 rounded-full mb-2">
+                                                        <i class="bi bi-list-check"></i> Misi
+                                                    </span>
+                                                    <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line break-words m-0">
+                                                        {{ $c->misi }}
+                                                    </p>
+                                                </div>
+                                            @endif
+
+                                            {{-- Program Kerja --}}
+                                            @if ($c->program_kerja)
+                                                <div class="mb-5 last:mb-0">
+                                                    <span
+                                                        class="inline-flex items-center gap-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-brand-dark bg-brand-cream px-3 py-1 rounded-full mb-2">
+                                                        <i class="bi bi-clipboard-check"></i> Program Kerja
+                                                    </span>
+                                                    <p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line break-words m-0">
+                                                        {{ $c->program_kerja }}
+                                                    </p>
+                                                </div>
+                                            @endif
+
+                                        </div>
+                                    </div>
+
+                                </div>
                             </div>
                         </div>
                     @endforeach
@@ -858,26 +466,26 @@
     {{-- ==========================================
          CTA SECTION
          ========================================== --}}
-    <section class="cta-section">
-        <div class="container cta-content">
-            <h2>Siap Menggunakan Hak Suara Anda?</h2>
-            <p>Bergabunglah dalam pemilihan digital yang modern dan transparan</p>
+    <section class="relative overflow-hidden text-white py-20 text-center bg-gradient-to-br from-brand-dark to-brand-mid">
+        <div class="absolute -top-24 -right-24 w-[400px] h-[400px] bg-brand-lime rounded-full blur-[120px] opacity-15 pointer-events-none"></div>
+        <div class="relative max-w-7xl mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-extrabold mb-4">Siap Menggunakan Hak Suara Anda?</h2>
+            <p class="opacity-85 text-lg mb-8">Bergabunglah dalam pemilihan digital yang modern dan transparan</p>
 
-            <div class="d-flex gap-3 justify-content-center flex-wrap">
+            <div class="flex gap-3 justify-center flex-wrap">
                 @guest
-                    <a href="{{ route('register') }}" class="lp-btn lp-btn-primary">
-                        <i class="bi bi-person-plus"></i>
-                        Daftar Sekarang
+                    <a href="{{ route('register') }}"
+                        class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark px-8 py-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30">
+                        <i class="bi bi-person-plus"></i> Daftar Sekarang
                     </a>
-                    <a href="{{ route('login') }}" class="lp-btn lp-btn-outline">
-                        <i class="bi bi-box-arrow-in-right"></i>
-                        Login
+                    <a href="{{ route('login') }}"
+                        class="border-2 border-white/30 hover:bg-white/10 hover:border-white/50 text-white px-8 py-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition">
+                        <i class="bi bi-box-arrow-in-right"></i> Login
                     </a>
                 @else
                     <a href="{{ auth()->user()->isAdmin() ? route('admin.dashboard') : (auth()->user()->isOperator() ? route('operator.dashboard') : route('voter.dashboard')) }}"
-                        class="lp-btn lp-btn-primary">
-                        <i class="bi bi-speedometer2"></i>
-                        Ke Dashboard
+                        class="bg-brand-lime hover:bg-brand-limeHover text-brand-dark px-8 py-3.5 rounded-xl font-bold inline-flex items-center gap-2 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30">
+                        <i class="bi bi-speedometer2"></i> Ke Dashboard
                     </a>
                 @endguest
             </div>
@@ -887,18 +495,16 @@
     {{-- ==========================================
          FOOTER
          ========================================== --}}
-    <footer class="lp-footer">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                    <i class="bi bi-asterisk" style="color: #c6f135;"></i>
-                    <strong>Pilketos Digital</strong> &copy; {{ date('Y') }}
-                </div>
-                <div class="d-flex gap-3">
-                    <a href="{{ route('cek-status.index') }}">Cek Status</a>
-                    <a href="{{ route('hasil.index') }}">Hasil</a>
-                    <a href="{{ route('login') }}">Login</a>
-                </div>
+    <footer class="bg-brand-deep text-white/60 py-8 text-sm">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div>
+                <i class="bi bi-asterisk text-brand-lime"></i>
+                <strong class="text-white/90">Pilketos Digital</strong> &copy; {{ date('Y') }}
+            </div>
+            <div class="flex gap-6">
+                <a href="{{ route('cek-status.index') }}" class="hover:text-brand-lime transition">Cek Status</a>
+                <a href="{{ route('hasil.index') }}" class="hover:text-brand-lime transition">Hasil</a>
+                <a href="{{ route('login') }}" class="hover:text-brand-lime transition">Login</a>
             </div>
         </div>
     </footer>
@@ -928,8 +534,6 @@
                         hoursEl.textContent = '0';
                         minutesEl.textContent = '0';
                         secondsEl.textContent = '0';
-
-                        // Refresh halaman setelah countdown habis
                         setTimeout(() => window.location.reload(), 5000);
                         return;
                     }

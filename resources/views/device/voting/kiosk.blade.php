@@ -6,83 +6,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Voting - Pilketos</title>
-    <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap/css/bootstrap.min.css') }}">
+
     <link rel="stylesheet" href="{{ asset('storage/assets/libs/bootstrap-icons/bootstrap-icons.css') }}">
+
+    {{-- Tailwind CDN --}}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#1a2e1a',
+                            mid: '#2d5a3d',
+                            lime: '#c6f135',
+                            limeHover: '#a8d92d',
+                            cream: '#e8f5c8',
+                            deep: '#0f1f0f',
+                        },
+                    },
+                    keyframes: {
+                        pulseSoft: {
+                            '0%, 100%': {
+                                opacity: '1',
+                                transform: 'scale(1)'
+                            },
+                            '50%': {
+                                opacity: '0.6',
+                                transform: 'scale(0.95)'
+                            },
+                        },
+                    },
+                    animation: {
+                        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+                    },
+                },
+            },
+        };
+    </script>
+
+    {{-- Alpine.js --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {{-- QRCode.js --}}
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
     <style>
-        body {
-            background: #1a2e1a;
-            color: white;
-            min-height: 100vh;
-            margin: 0;
-            font-family: system-ui, sans-serif;
-            overflow-x: hidden;
-        }
-
-        /* WAITING */
-        .waiting-wrapper {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .waiting-card {
-            background: white;
-            color: #1a2e1a;
-            border-radius: 24px;
-            padding: 60px 40px;
-            text-align: center;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-
-        .waiting-icon {
-            font-size: 5rem;
-            color: #c6f135;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.6;
-                transform: scale(0.95);
-            }
-        }
-
-        /* IDLE */
-        .idle-wrapper {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .kiosk-card {
-            background: white;
-            color: #1a2e1a;
-            border-radius: 24px;
-            padding: 40px;
-            text-align: center;
-            max-width: 600px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-
-        .qr-box {
-            background: #fff;
-            padding: 20px;
-            border-radius: 16px;
-            display: inline-block;
-            border: 4px solid #c6f135;
-            margin: 20px 0;
+        [x-cloak] {
+            display: none !important;
         }
 
         #qrcode img,
@@ -91,495 +62,392 @@
             width: 280px !important;
             height: 280px !important;
         }
-
-        .progress-thin {
-            height: 4px;
-            background: #e9ecef;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-thin .progress-bar {
-            background: #c6f135;
-            transition: width 1s linear;
-        }
-
-        /* BALLOT */
-        .ballot-wrapper {
-            min-height: 100vh;
-            padding: 30px 20px;
-            display: none;
-        }
-
-        .ballot-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .ballot-header .voter-name {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #c6f135;
-        }
-
-        .ballot-header .voter-info {
-            opacity: 0.7;
-            font-size: 0.95rem;
-        }
-
-        .candidate-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .candidate-card {
-            background: white;
-            color: #1a2e1a;
-            border-radius: 20px;
-            padding: 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 4px solid transparent;
-            position: relative;
-        }
-
-        .candidate-card:hover {
-            transform: translateY(-4px);
-            border-color: #c6f135;
-            box-shadow: 0 12px 32px rgba(198, 241, 53, 0.3);
-        }
-
-        .candidate-card.selected {
-            border-color: #c6f135;
-            background: #f7fce9;
-        }
-
-        .candidate-photo {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 0 auto 16px;
-            border: 4px solid #c6f135;
-            display: block;
-        }
-
-        .candidate-photo-placeholder {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            background: #c6f135;
-            color: #1a2e1a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            font-weight: 700;
-            margin: 0 auto 16px;
-        }
-
-        .candidate-no {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: #1a2e1a;
-            color: #c6f135;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-
-        .candidate-name {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .candidate-class {
-            opacity: 0.6;
-            margin-bottom: 12px;
-            font-size: 0.9rem;
-        }
-
-        .candidate-visi {
-            font-size: 0.85rem;
-            opacity: 0.8;
-            max-height: 80px;
-            overflow: hidden;
-            text-align: left;
-        }
-
-        /* THANKS */
-        .thanks-wrapper {
-            min-height: 100vh;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .thanks-wrapper .icon {
-            font-size: 8rem;
-            color: #c6f135;
-        }
-
-        .thanks-wrapper .text {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #c6f135;
-            margin-top: 20px;
-        }
-
-        .thanks-wrapper .sub {
-            opacity: 0.7;
-            margin-top: 10px;
-        }
     </style>
 </head>
 
-<body>
+<body class="bg-brand-dark text-white min-h-screen m-0 font-sans overflow-x-hidden">
 
     @if (!$election || !$device)
-        {{-- WAITING --}}
-        <div class="waiting-wrapper">
-            <div class="waiting-card">
-                <i class="bi bi-hourglass-split waiting-icon"></i>
-                <h2 class="mt-4 mb-2">Menunggu Pemilihan...</h2>
-                <p class="text-muted mb-4">Belum ada pemilihan yang sedang berlangsung.</p>
-                <div class="alert alert-info small mb-3">
-                    <i class="bi bi-info-circle"></i>
-                    Layar ini akan otomatis menampilkan QR saat pemilihan dimulai.
+        {{-- ==========================================
+             WAITING SCREEN
+             ========================================== --}}
+        <div x-data="waitingScreen()" x-init="start()" class="min-h-screen flex items-center justify-center">
+            <div class="bg-white text-brand-dark rounded-3xl px-8 py-14 md:px-10 md:py-16 text-center max-w-lg w-[90%] shadow-2xl">
+
+                <i class="bi bi-hourglass-split text-brand-lime text-8xl block animate-pulse-soft"></i>
+
+                <h2 class="mt-6 mb-2 text-2xl font-bold">Menunggu Pemilihan...</h2>
+                <p class="text-slate-500 mb-6">Belum ada pemilihan yang sedang berlangsung.</p>
+
+                <div class="bg-blue-50 text-blue-800 border border-blue-200 rounded-xl px-4 py-3 text-sm mb-5 inline-flex items-start gap-2 text-left">
+                    <i class="bi bi-info-circle mt-0.5"></i>
+                    <span>Layar ini akan otomatis menampilkan QR saat pemilihan dimulai.</span>
                 </div>
-                <div class="text-muted small">
+
+                <div class="text-slate-500 text-sm">
                     <i class="bi bi-arrow-clockwise"></i>
-                    Refresh otomatis dalam <span id="waitCounter">5</span>s
+                    Refresh otomatis dalam <span class="font-bold" x-text="counter">5</span>s
                 </div>
             </div>
         </div>
+
         <script>
-            let counter = 5;
-            const el = document.getElementById('waitCounter');
-            setInterval(() => {
-                counter--;
-                if (el) el.textContent = counter;
-                if (counter <= 0) window.location.reload();
-            }, 1000);
+            function waitingScreen() {
+                return {
+                    counter: 5,
+                    intervalId: null,
+                    start() {
+                        this.intervalId = setInterval(() => {
+                            this.counter--;
+                            if (this.counter <= 0) {
+                                clearInterval(this.intervalId);
+                                window.location.reload();
+                            }
+                        }, 1000);
+                    },
+                };
+            }
         </script>
     @else
-        {{-- IDLE (QR) --}}
-        <div class="idle-wrapper" id="idleScreen">
-            <div class="kiosk-card">
-                <h2 class="mb-1">{{ $election->title }}</h2>
-                <p class="text-muted mb-0">Bilik Suara — {{ $election->tahun_ajaran }}</p>
+        {{-- ==========================================
+             MAIN KIOSK (IDLE / BALLOT / THANKS)
+             ========================================== --}}
+        <div x-data="votingKiosk()" x-init="init()" x-cloak>
 
-                <div class="qr-box" id="qrcode"></div>
+            {{-- ==========================================
+                 SCREEN: IDLE (QR)
+                 ========================================== --}}
+            <div x-show="screen === 'idle'" class="min-h-screen flex items-center justify-center p-4">
+                <div class="bg-white text-brand-dark rounded-3xl p-6 md:p-10 text-center max-w-2xl w-full shadow-2xl">
 
-                <p class="mb-3">
-                    <i class="bi bi-phone"></i>
-                    Scan QR ini dari HP untuk memilih
-                </p>
+                    <h2 class="text-2xl md:text-3xl font-bold mb-1">{{ $election->title }}</h2>
+                    <p class="text-slate-500 mb-0">Bilik Suara — {{ $election->tahun_ajaran }}</p>
 
-                <div class="progress-thin mb-2">
-                    <div class="progress-bar" id="timer-bar" style="width: 100%"></div>
-                </div>
-                <small class="text-muted">
-                    Refresh dalam <span id="timer-text">30</span>s
-                </small>
+                    <div class="inline-block bg-white p-5 rounded-2xl border-4 border-brand-lime my-5">
+                        <div id="qrcode" class="w-[280px] h-[280px]"></div>
+                    </div>
 
-                <div class="mt-4 pt-3 border-top">
-                    <div class="d-flex justify-content-around">
-                        <div>
-                            <div class="fs-3 fw-bold" id="count-voted">0</div>
-                            <small class="text-muted">Sudah Memilih</small>
-                        </div>
-                        <div>
-                            <div class="fs-3 fw-bold" id="count-total">0</div>
-                            <small class="text-muted">Total Pemilih</small>
+                    <p class="mb-4 text-slate-700">
+                        <i class="bi bi-phone"></i> Scan QR ini dari HP untuk memilih
+                    </p>
+
+                    {{-- Progress bar --}}
+                    <div class="h-1 bg-slate-200 rounded-full overflow-hidden mb-2 max-w-md mx-auto">
+                        <div class="h-full bg-brand-lime transition-[width] duration-1000 ease-linear" :style="`width: ${(timer / 30) * 100}%`"></div>
+                    </div>
+                    <small class="text-slate-500 text-sm">
+                        Refresh dalam <span class="font-bold" x-text="timer">30</span>s
+                    </small>
+
+                    {{-- Counters --}}
+                    <div class="mt-8 pt-6 border-t border-slate-200">
+                        <div class="flex justify-around">
+                            <div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-dark" x-text="totalVoted">0</div>
+                                <small class="text-slate-500">Sudah Memilih</small>
+                            </div>
+                            <div class="w-px bg-slate-200"></div>
+                            <div>
+                                <div class="text-3xl md:text-4xl font-extrabold text-brand-dark" x-text="totalVoters">0</div>
+                                <small class="text-slate-500">Total Pemilih</small>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="mt-4 d-flex gap-2 justify-content-center">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshQR()">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh QR
-                    </button>
-                    <form action="{{ route('device.voting.close') }}" method="POST" class="d-inline" onsubmit="return confirm('Tutup device voting?')">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-x-circle"></i> Tutup Device
+                    {{-- Actions --}}
+                    <div class="mt-8 flex gap-2 justify-center flex-wrap">
+                        <button type="button" @click="refreshQR()"
+                            class="inline-flex items-center gap-1.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg transition">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh QR
                         </button>
-                    </form>
+
+                        <form action="{{ route('device.voting.close') }}" method="POST" onsubmit="return confirm('Tutup device voting?')">
+                            @csrf
+                            <button type="submit" class="inline-flex items-center gap-1.5 border border-rose-300 hover:bg-rose-50 text-rose-600 text-sm font-medium px-4 py-2 rounded-lg transition">
+                                <i class="bi bi-x-circle"></i> Tutup Device
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
             </div>
-        </div>
 
-        {{-- BALLOT --}}
-        <div class="ballot-wrapper" id="ballotScreen">
-            <div class="ballot-header">
-                <div class="voter-name" id="ballotVoterName">-</div>
-                <div class="voter-info">
-                    <span id="ballotVoterNis">-</span> · <span id="ballotVoterKelas">-</span>
+            {{-- ==========================================
+                 SCREEN: BALLOT
+                 ========================================== --}}
+            <div x-show="screen === 'ballot'" class="min-h-screen p-6 md:p-8">
+
+                {{-- Header --}}
+                <div class="text-center mb-8">
+                    <div class="text-2xl md:text-3xl font-bold text-brand-lime" x-text="voter.nama">-</div>
+                    <div class="text-white/70 text-sm md:text-base mt-1">
+                        <span x-text="'NIS: ' + voter.nis">-</span>
+                        ·
+                        <span x-text="voter.kelas">-</span>
+                    </div>
+                    <p class="mt-3 text-white/80">Silakan pilih kandidat:</p>
                 </div>
-                <p class="mt-3 mb-0" style="opacity: 0.8;">Silakan pilih kandidat:</p>
-            </div>
 
-            <div class="candidate-grid" id="candidateGrid"></div>
+                {{-- Candidate grid --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-6xl mx-auto">
+                    <template x-for="c in candidates" :key="c.id">
+                        <div @click="selectCandidate(c.id)"
+                            :class="selectedCandidateId === c.id ?
+                                'border-brand-lime bg-lime-50 -translate-y-1 shadow-2xl shadow-brand-lime/40' :
+                                'border-transparent hover:border-brand-lime hover:-translate-y-1 hover:shadow-2xl hover:shadow-brand-lime/30'"
+                            class="relative bg-white text-brand-dark rounded-3xl p-6 text-center cursor-pointer transition-all border-4">
 
-            <div class="text-center mt-4">
-                <button type="button" class="btn btn-lg" style="background: #c6f135; color: #1a2e1a; font-weight: 700; padding: 14px 60px;" id="submitBtn" onclick="confirmVote()" disabled>
-                    <i class="bi bi-check-circle"></i> Konfirmasi Pilihan
-                </button>
-            </div>
-        </div>
+                            {{-- No urut --}}
+                            <div class="absolute top-3 left-3 w-11 h-11 rounded-full bg-brand-dark text-brand-lime flex items-center justify-center font-bold text-lg" x-text="c.no_urut"></div>
 
-        {{-- THANKS --}}
-        <div class="thanks-wrapper" id="thanksScreen">
-            <div>
-                <i class="bi bi-check-circle-fill icon"></i>
-                <div class="text">Terima Kasih!</div>
-                <div class="sub">Suara Anda sudah tercatat</div>
-                <div class="sub mt-4" style="font-size: 0.9rem;">
-                    Kembali ke layar awal dalam <span id="thanksTimer">5</span>s
+                            {{-- Foto --}}
+                            <template x-if="c.foto">
+                                <img :src="c.foto" :alt="c.nama" class="w-[120px] h-[120px] rounded-full object-cover mx-auto mb-4 border-4 border-brand-lime block">
+                            </template>
+                            <template x-if="!c.foto">
+                                <div class="w-[120px] h-[120px] rounded-full bg-brand-lime text-brand-dark flex items-center justify-center text-5xl font-bold mx-auto mb-4"
+                                    x-text="c.nama.charAt(0).toUpperCase()"></div>
+                            </template>
+
+                            {{-- Nama & kelas --}}
+                            <div class="text-xl font-bold mb-1" x-text="c.nama"></div>
+                            <div class="text-slate-500 text-sm mb-3">
+                                <i class="bi bi-mortarboard"></i>
+                                <span x-text="c.kelas"></span>
+                            </div>
+
+                            {{-- Visi --}}
+                            <div class="text-sm text-slate-600 text-left max-h-20 overflow-hidden leading-relaxed" x-text="c.visi || ''"></div>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Submit button --}}
+                <div class="text-center mt-8">
+                    <button type="button" @click="confirmVote()" :disabled="!selectedCandidateId"
+                        :class="selectedCandidateId
+                            ?
+                            'bg-brand-lime hover:bg-brand-limeHover text-brand-dark hover:-translate-y-0.5 hover:shadow-lg hover:shadow-brand-lime/30 cursor-pointer' :
+                            'bg-brand-lime/40 text-brand-dark/40 cursor-not-allowed'"
+                        class="font-bold text-lg rounded-xl px-14 py-4 inline-flex items-center gap-2 transition">
+                        <i class="bi bi-check-circle"></i> Konfirmasi Pilihan
+                    </button>
                 </div>
             </div>
+
+            {{-- ==========================================
+                 SCREEN: THANKS
+                 ========================================== --}}
+            <div x-show="screen === 'thanks'" class="min-h-screen flex items-center justify-center text-center p-4">
+                <div>
+                    <i class="bi bi-check-circle-fill text-brand-lime text-[8rem] block"></i>
+                    <div class="text-3xl md:text-4xl font-bold text-brand-lime mt-5">Terima Kasih!</div>
+                    <div class="text-white/70 mt-2">Suara Anda sudah tercatat</div>
+                    <div class="text-white/60 text-sm mt-5">
+                        Kembali ke layar awal dalam <span class="font-bold" x-text="thanksTimer">5</span>s
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
         <script>
-            const SCAN_URL = '{{ url('/scan/voting') }}';
-            const DEVICE_ID = {{ $device->id }};
-            const CSRF_TOKEN = '{{ csrf_token() }}';
-            const SUBMIT_URL = '{{ route('device.voting.submit') }}';
-            const STATUS_URL = '{{ route('device.voting.status') }}';
+            function votingKiosk() {
+                return {
+                    // ==== Config dari Blade ====
+                    SCAN_URL: @json(url('/scan/voting')),
+                    DEVICE_ID: @json($device->id),
+                    CSRF_TOKEN: @json(csrf_token()),
+                    SUBMIT_URL: @json(route('device.voting.submit')),
+                    STATUS_URL: @json(route('device.voting.status')),
 
-            let currentToken = '{{ $device->device_token }}';
-            let currentExpires = {{ max(0, now()->diffInSeconds($device->token_expired_at, false)) }};
-            let qrCode = null;
-            let pollTimer = null;
-            let countdownTimer = null;
-            let thanksTimer = null;
-            let assignedVoter = null;
-            let selectedCandidateId = null;
-            let currentDeviceState = 'idle';
+                    // ==== State ====
+                    screen: 'idle', // 'idle' | 'ballot' | 'thanks'
+                    currentToken: @json($device->device_token),
+                    timer: {{ max(0, now()->diffInSeconds($device->token_expired_at, false)) }},
+                    totalVoted: 0,
+                    totalVoters: 0,
+                    voter: {
+                        nama: '-',
+                        nis: '-',
+                        kelas: '-'
+                    },
+                    candidates: [],
+                    selectedCandidateId: null,
+                    thanksTimer: 5,
 
-            function renderQR(token) {
-                const container = document.getElementById('qrcode');
-                container.innerHTML = '';
+                    // ==== Runtime ====
+                    qrCode: null,
+                    pollId: null,
+                    timerId: null,
+                    thanksId: null,
 
-                qrCode = new QRCode(container, {
-                    text: `${SCAN_URL}/${token}`,
-                    width: 280,
-                    height: 280,
-                    colorDark: '#1a2e1a',
-                    colorLight: '#ffffff',
-                    correctLevel: QRCode.CorrectLevel.M,
-                });
-            }
+                    init() {
+                        this.renderQR(this.currentToken);
+                        this.startCountdown(this.timer);
 
-            function startCountdown(seconds) {
-                clearInterval(countdownTimer);
-                let remaining = seconds;
-                updateCountdown(remaining);
+                        this.pollStatus();
+                        this.pollId = setInterval(() => this.pollStatus(), 2000);
+                    },
 
-                countdownTimer = setInterval(() => {
-                    remaining--;
-                    if (remaining <= 0) {
-                        clearInterval(countdownTimer);
-                        refreshQR();
-                    } else {
-                        updateCountdown(remaining);
-                    }
-                }, 1000);
-            }
+                    // ==== QR ====
+                    renderQR(token) {
+                        const container = document.getElementById('qrcode');
+                        if (!container) return;
+                        container.innerHTML = '';
+                        this.qrCode = new QRCode(container, {
+                            text: `${this.SCAN_URL}/${token}`,
+                            width: 280,
+                            height: 280,
+                            colorDark: '#1a2e1a',
+                            colorLight: '#ffffff',
+                            correctLevel: QRCode.CorrectLevel.M,
+                        });
+                    },
 
-            function updateCountdown(seconds) {
-                const el = document.getElementById('timer-text');
-                const bar = document.getElementById('timer-bar');
-                if (el) el.textContent = seconds;
-                if (bar) bar.style.width = Math.max(0, Math.min(100, (seconds / 30) * 100)) + '%';
-            }
+                    // ==== Timer ====
+                    startCountdown(seconds) {
+                        clearInterval(this.timerId);
+                        this.timer = seconds;
 
-            function pollStatus() {
-                fetch(STATUS_URL, {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                        this.timerId = setInterval(() => {
+                            this.timer--;
+                            if (this.timer <= 0) {
+                                clearInterval(this.timerId);
+                                this.refreshQR();
+                            }
+                        }, 1000);
+                    },
+
+                    // ==== Polling ====
+                    pollStatus() {
+                        fetch(this.STATUS_URL, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.action === 'reload') {
+                                    clearInterval(this.pollId);
+                                    clearInterval(this.timerId);
+                                    if (data.message) alert(data.message);
+                                    window.location.reload();
+                                    return;
+                                }
+
+                                if (data.total_voted !== undefined) this.totalVoted = data.total_voted;
+                                if (data.total_voters !== undefined) this.totalVoters = data.total_voters;
+
+                                if (data.status === 'assigned' && this.screen !== 'ballot') {
+                                    this.showBallot(data.voter, data.candidates);
+                                } else if (data.status === 'idle' && this.screen === 'ballot') {
+                                    this.showIdle();
+                                } else if (data.status === 'idle' && data.token && data.token !== this.currentToken) {
+                                    this.currentToken = data.token;
+                                    this.renderQR(this.currentToken);
+                                    this.startCountdown(30);
+                                }
+                            })
+                            .catch(err => console.error('Poll error:', err));
+                    },
+
+                    // ==== Screen transition ====
+                    showIdle() {
+                        this.screen = 'idle';
+                        this.selectedCandidateId = null;
+                        this.voter = {
+                            nama: '-',
+                            nis: '-',
+                            kelas: '-'
+                        };
+                        this.candidates = [];
+
+                        // Tunggu DOM selesai render sebelum render QR
+                        this.$nextTick(() => {
+                            this.renderQR(this.currentToken);
+                            this.startCountdown(30);
+                        });
+                    },
+
+                    showBallot(voter, candidates) {
+                        this.voter = voter;
+                        this.candidates = candidates;
+                        this.selectedCandidateId = null;
+                        this.screen = 'ballot';
+                    },
+
+                    showThanks() {
+                        this.screen = 'thanks';
+                        this.thanksTimer = 5;
+
+                        clearInterval(this.thanksId);
+                        this.thanksId = setInterval(() => {
+                            this.thanksTimer--;
+                            if (this.thanksTimer <= 0) {
+                                clearInterval(this.thanksId);
+                                this.showIdle();
+                            }
+                        }, 1000);
+                    },
+
+                    // ==== Selection ====
+                    selectCandidate(candidateId) {
+                        this.selectedCandidateId = candidateId;
+                    },
+
+                    // ==== Submit ====
+                    async confirmVote() {
+                        if (!this.selectedCandidateId) return;
+
+                        const ok = confirm('Yakin dengan pilihan Anda? Pilihan tidak dapat diubah.');
+                        if (!ok) return;
+
+                        try {
+                            const res = await fetch(this.SUBMIT_URL, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': this.CSRF_TOKEN,
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                body: JSON.stringify({
+                                    device_id: this.DEVICE_ID,
+                                    candidate_id: this.selectedCandidateId,
+                                }),
+                            });
+
+                            const data = await res.json();
+
+                            if (data.status === 'ok') {
+                                this.showThanks();
+                            } else {
+                                alert('Error: ' + (data.message || 'Gagal menyimpan vote'));
+                            }
+                        } catch (err) {
+                            alert('Error koneksi: ' + err.message);
                         }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.action === 'reload') {
-                            clearInterval(pollTimer);
-                            clearInterval(countdownTimer);
-                            if (data.message) alert(data.message);
-                            window.location.reload();
-                            return;
-                        }
+                    },
 
-                        if (data.total_voted !== undefined) {
-                            document.getElementById('count-voted').textContent = data.total_voted;
-                        }
-                        if (data.total_voters !== undefined) {
-                            document.getElementById('count-total').textContent = data.total_voters;
-                        }
-
-                        if (data.status === 'assigned' && currentDeviceState !== 'assigned') {
-                            currentDeviceState = 'assigned';
-                            showBallot(data.voter, data.candidates);
-                        } else if (data.status === 'idle' && currentDeviceState !== 'idle') {
-                            currentDeviceState = 'idle';
-                            showIdle();
-                        } else if (data.status === 'idle' && data.token && data.token !== currentToken) {
-                            currentToken = data.token;
-                            renderQR(currentToken);
-                            startCountdown(30);
-                        }
-                    })
-                    .catch(err => console.error('Poll error:', err));
+                    // ==== Refresh QR ====
+                    refreshQR() {
+                        fetch(this.STATUS_URL + '?refresh=1', {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.token) {
+                                    this.currentToken = data.token;
+                                    this.renderQR(this.currentToken);
+                                    this.startCountdown(30);
+                                }
+                            })
+                            .catch(err => console.error('Refresh error:', err));
+                    },
+                };
             }
-
-            function showIdle() {
-                document.getElementById('idleScreen').style.display = 'flex';
-                document.getElementById('ballotScreen').style.display = 'none';
-                document.getElementById('thanksScreen').style.display = 'none';
-
-                selectedCandidateId = null;
-                assignedVoter = null;
-                currentDeviceState = 'idle';
-
-                renderQR(currentToken);
-                startCountdown(30);
-            }
-
-            function showBallot(voter, candidates) {
-                assignedVoter = voter;
-                selectedCandidateId = null;
-
-                document.getElementById('idleScreen').style.display = 'none';
-                document.getElementById('ballotScreen').style.display = 'block';
-                document.getElementById('thanksScreen').style.display = 'none';
-
-                document.getElementById('ballotVoterName').textContent = voter.nama;
-                document.getElementById('ballotVoterNis').textContent = 'NIS: ' + voter.nis;
-                document.getElementById('ballotVoterKelas').textContent = voter.kelas;
-
-                const grid = document.getElementById('candidateGrid');
-                grid.innerHTML = '';
-
-                candidates.forEach(c => {
-                    const photoHtml = c.foto ?
-                        `<img src="${c.foto}" alt="${c.nama}" class="candidate-photo">` :
-                        `<div class="candidate-photo-placeholder">${c.nama.charAt(0).toUpperCase()}</div>`;
-
-                    const card = document.createElement('div');
-                    card.className = 'candidate-card';
-                    card.dataset.candidateId = c.id;
-                    card.onclick = () => selectCandidate(c.id);
-
-                    card.innerHTML = `
-                    <div class="candidate-no">${c.no_urut}</div>
-                    ${photoHtml}
-                    <div class="candidate-name">${c.nama}</div>
-                    <div class="candidate-class"><i class="bi bi-mortarboard"></i> ${c.kelas}</div>
-                    <div class="candidate-visi">${c.visi || ''}</div>
-                `;
-
-                    grid.appendChild(card);
-                });
-
-                document.getElementById('submitBtn').disabled = true;
-            }
-
-            function showThanks() {
-                document.getElementById('idleScreen').style.display = 'none';
-                document.getElementById('ballotScreen').style.display = 'none';
-                document.getElementById('thanksScreen').style.display = 'flex';
-
-                let remaining = 5;
-                document.getElementById('thanksTimer').textContent = remaining;
-
-                clearInterval(thanksTimer);
-                thanksTimer = setInterval(() => {
-                    remaining--;
-                    document.getElementById('thanksTimer').textContent = remaining;
-
-                    if (remaining <= 0) {
-                        clearInterval(thanksTimer);
-                        currentDeviceState = 'idle';
-                        showIdle();
-                    }
-                }, 1000);
-            }
-
-            function selectCandidate(candidateId) {
-                selectedCandidateId = candidateId;
-
-                document.querySelectorAll('.candidate-card').forEach(card => {
-                    card.classList.toggle('selected', parseInt(card.dataset.candidateId) === candidateId);
-                });
-
-                document.getElementById('submitBtn').disabled = false;
-            }
-
-            async function confirmVote() {
-                if (!selectedCandidateId) return;
-
-                const ok = confirm('Yakin dengan pilihan Anda? Pilihan tidak dapat diubah.');
-                if (!ok) return;
-
-                try {
-                    const res = await fetch(SUBMIT_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': CSRF_TOKEN,
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: JSON.stringify({
-                            device_id: DEVICE_ID,
-                            candidate_id: selectedCandidateId,
-                        }),
-                    });
-
-                    const data = await res.json();
-
-                    if (data.status === 'ok') {
-                        showThanks();
-                    } else {
-                        alert('Error: ' + (data.message || 'Gagal menyimpan vote'));
-                    }
-                } catch (err) {
-                    alert('Error koneksi: ' + err.message);
-                }
-            }
-
-            function refreshQR() {
-                fetch(STATUS_URL + '?refresh=1', {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.token) {
-                            currentToken = data.token;
-                            renderQR(currentToken);
-                            startCountdown(30);
-                        }
-                    });
-            }
-
-            showIdle();
-            pollTimer = setInterval(pollStatus, 2000);
-            pollStatus();
         </script>
     @endif
 

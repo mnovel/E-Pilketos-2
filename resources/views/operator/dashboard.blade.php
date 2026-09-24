@@ -93,6 +93,81 @@
     </div>
 
     {{-- ==========================================
+         CHART SECTION
+         ========================================== --}}
+    <div class="row g-3 mb-4">
+
+        {{-- Chart 1: Partisipasi per Sesi Aktif --}}
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+                    <strong>
+                        <i class="bi bi-bar-chart-fill text-primary me-1"></i>
+                        Partisipasi Sesi Aktif
+                    </strong>
+                    @if ($chartData['has_active_session'])
+                        <span class="badge bg-success-subtle text-success">
+                            {{ $activeSessions->count() }} sesi
+                        </span>
+                    @endif
+                </div>
+                <div class="card-body">
+                    @if ($chartData['has_active_session'])
+                        <div id="chartPartisipasiSesi"></div>
+                    @else
+                        <div class="text-center text-muted py-5">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px; background: #f8f9fa;">
+                                <i class="bi bi-bar-chart" style="font-size: 1.8rem; opacity: 0.4;"></i>
+                            </div>
+                            <p class="mt-2 mb-1 fw-medium">Tidak ada sesi aktif</p>
+                            <small>Chart muncul saat ada sesi yang sedang berjalan</small>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Chart 2: Gauge Total Partisipasi --}}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom">
+                    <strong>
+                        <i class="bi bi-speedometer2 text-success me-1"></i>
+                        Partisipasi Hari Ini
+                    </strong>
+                </div>
+                <div class="card-body">
+                    <div id="chartGaugePartisipasi"></div>
+
+                    @if ($chartData['gauge_partisipasi']['total_voters'] > 0)
+                        <div class="row text-center mt-3 pt-3 border-top">
+                            <div class="col-4">
+                                <div class="fw-bold text-success">
+                                    {{ $chartData['gauge_partisipasi']['total_voted'] }}
+                                </div>
+                                <small class="text-muted">Memilih</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold text-secondary">
+                                    {{ $chartData['gauge_partisipasi']['total_golput'] }}
+                                </div>
+                                <small class="text-muted">Golput</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="fw-bold text-primary">
+                                    {{ $chartData['gauge_partisipasi']['total_voters'] }}
+                                </div>
+                                <small class="text-muted">Total</small>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- ==========================================
          QUICK ACTIONS
          ========================================== --}}
     <div class="row g-3 mb-4">
@@ -305,3 +380,160 @@
     </div>
 
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            @if ($chartData['has_active_session'])
+                // ==========================================
+                // CHART 1: Partisipasi per Sesi Aktif
+                // ==========================================
+                const partisipasiData = @json($chartData['partisipasi_sesi']);
+
+                const chartPartisipasiSesi = new ApexCharts(
+                    document.querySelector("#chartPartisipasiSesi"), {
+                        chart: {
+                            type: 'bar',
+                            height: 340,
+                            toolbar: {
+                                show: false
+                            },
+                            fontFamily: 'system-ui, -apple-system, sans-serif',
+                        },
+                        series: [{
+                                name: 'Sudah Vote',
+                                data: partisipasiData.voted_pct
+                            },
+                            {
+                                name: 'Check-in',
+                                data: partisipasiData.checked_in_pct
+                            },
+                        ],
+                        plotOptions: {
+                            bar: {
+                                borderRadius: 6,
+                                columnWidth: '60%',
+                                dataLabels: {
+                                    position: 'top'
+                                },
+                            },
+                        },
+                        colors: ['#198754', '#0dcaf0'],
+                        dataLabels: {
+                            enabled: true,
+                            formatter: (val) => val > 0 ? val + '%' : '',
+                            offsetY: -20,
+                            style: {
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                colors: ['#1a2e1a'],
+                            },
+                        },
+                        xaxis: {
+                            categories: partisipasiData.labels,
+                            labels: {
+                                style: {
+                                    fontSize: '11px'
+                                }
+                            },
+                        },
+                        yaxis: {
+                            max: 100,
+                            labels: {
+                                formatter: (val) => val + '%'
+                            },
+                        },
+                        tooltip: {
+                            shared: true,
+                            intersect: false,
+                            y: {
+                                formatter: function(val, opts) {
+                                    const idx = opts.dataPointIndex;
+                                    const seriesName = opts.w.globals.seriesNames[opts.seriesIndex];
+                                    const total = partisipasiData.total_voters[idx];
+                                    const count = seriesName === 'Sudah Vote' ?
+                                        partisipasiData.voted_count[idx] :
+                                        partisipasiData.checked_in_count[idx];
+                                    return `${val}% (${count}/${total})`;
+                                },
+                            },
+                        },
+                        legend: {
+                            position: 'top',
+                            horizontalAlign: 'right',
+                            fontSize: '12px',
+                        },
+                    }
+                );
+
+                chartPartisipasiSesi.render();
+            @endif
+
+            // ==========================================
+            // CHART 2: Gauge Partisipasi
+            // ==========================================
+            const gaugeData = @json($chartData['gauge_partisipasi']);
+
+            const chartGaugePartisipasi = new ApexCharts(
+                document.querySelector("#chartGaugePartisipasi"), {
+                    chart: {
+                        type: 'radialBar',
+                        height: 260,
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                    },
+                    series: [gaugeData.percentage],
+                    plotOptions: {
+                        radialBar: {
+                            hollow: {
+                                size: '65%'
+                            },
+                            track: {
+                                background: '#e9ecef',
+                                strokeWidth: '100%',
+                            },
+                            dataLabels: {
+                                name: {
+                                    show: true,
+                                    fontSize: '13px',
+                                    color: '#6c757d',
+                                    offsetY: 22,
+                                },
+                                value: {
+                                    show: true,
+                                    fontSize: '32px',
+                                    fontWeight: 'bold',
+                                    color: '#1a2e1a',
+                                    offsetY: -12,
+                                    formatter: (val) => val + '%',
+                                },
+                            },
+                        },
+                    },
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shade: 'dark',
+                            type: 'horizontal',
+                            gradientToColors: [
+                                gaugeData.percentage >= 75 ? '#198754' :
+                                gaugeData.percentage >= 40 ? '#ffc107' : '#dc3545'
+                            ],
+                            stops: [0, 100],
+                        },
+                    },
+                    stroke: {
+                        lineCap: 'round'
+                    },
+                    labels: ['Partisipasi'],
+                    colors: [
+                        gaugeData.percentage >= 75 ? '#198754' :
+                        gaugeData.percentage >= 40 ? '#ffc107' : '#dc3545'
+                    ],
+                }
+            );
+
+            chartGaugePartisipasi.render();
+        });
+    </script>
+@endpush

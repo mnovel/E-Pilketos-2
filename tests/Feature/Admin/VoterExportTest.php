@@ -66,14 +66,13 @@ class VoterExportTest extends TestCase
     }
 
     // ==========================================
-    // PREVIEW
+    // PREVIEW — BASIC COUNT
     // ==========================================
 
     public function test_preview_returns_count_of_all_voters()
     {
         $admin = $this->createAdmin();
 
-        // Bikin 5 voter
         User::factory()->count(5)->voter()->create(['role' => UserRole::VOTER]);
 
         $response = $this->actingAs($admin)
@@ -94,13 +93,11 @@ class VoterExportTest extends TestCase
         $classA = ClassRoom::factory()->create(['name' => 'X-IPA-1']);
         $classB = ClassRoom::factory()->create(['name' => 'X-IPA-2']);
 
-        // 3 voter di kelas A
         User::factory()->count(3)->voter()->create([
             'role'     => UserRole::VOTER,
             'class_id' => $classA->id,
         ]);
 
-        // 2 voter di kelas B
         User::factory()->count(2)->voter()->create([
             'role'     => UserRole::VOTER,
             'class_id' => $classB->id,
@@ -133,28 +130,22 @@ class VoterExportTest extends TestCase
             'role' => UserRole::VOTER,
         ]);
 
-        // Filter pending
         $response = $this->actingAs($admin)
             ->postJson(route('admin.voters.export.preview'), [
                 'status' => 'pending',
             ]);
-
         $response->assertJson(['count' => 2]);
 
-        // Filter verified
         $response = $this->actingAs($admin)
             ->postJson(route('admin.voters.export.preview'), [
                 'status' => 'verified',
             ]);
-
         $response->assertJson(['count' => 3]);
 
-        // Filter rejected
         $response = $this->actingAs($admin)
             ->postJson(route('admin.voters.export.preview'), [
                 'status' => 'rejected',
             ]);
-
         $response->assertJson(['count' => 1]);
     }
 
@@ -170,6 +161,126 @@ class VoterExportTest extends TestCase
             ]);
 
         $response->assertJson(['reset' => true]);
+    }
+
+    // ==========================================
+    // PREVIEW — COUNTS PER STATUS (BARU)
+    // ==========================================
+
+    public function test_preview_returns_counts_per_status_for_all_classes()
+    {
+        $admin = $this->createAdmin();
+
+        User::factory()->count(3)->voter()->create([
+            'role'   => UserRole::VOTER,
+            'status' => VoterStatus::VERIFIED,
+        ]);
+        User::factory()->count(2)->pending()->create(['role' => UserRole::VOTER]);
+        User::factory()->count(1)->rejected()->create(['role' => UserRole::VOTER]);
+
+        $response = $this->actingAs($admin)
+            ->postJson(route('admin.voters.export.preview'), [
+                'status' => 'all',
+            ]);
+
+        $response->assertJson([
+            'counts' => [
+                'all'      => 6,
+                'pending'  => 2,
+                'verified' => 3,
+                'rejected' => 1,
+            ],
+        ]);
+    }
+
+    public function test_preview_counts_are_filtered_by_class()
+    {
+        $admin = $this->createAdmin();
+        $classA = ClassRoom::factory()->create();
+        $classB = ClassRoom::factory()->create();
+
+        // Kelas A: 3 verified + 1 pending = 4
+        User::factory()->count(3)->voter()->create([
+            'role'     => UserRole::VOTER,
+            'class_id' => $classA->id,
+            'status'   => VoterStatus::VERIFIED,
+        ]);
+        User::factory()->count(1)->pending()->create([
+            'role'     => UserRole::VOTER,
+            'class_id' => $classA->id,
+        ]);
+
+        // Kelas B: 5 verified
+        User::factory()->count(5)->voter()->create([
+            'role'     => UserRole::VOTER,
+            'class_id' => $classB->id,
+            'status'   => VoterStatus::VERIFIED,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->postJson(route('admin.voters.export.preview'), [
+                'class_id' => $classA->id,
+                'status'   => 'all',
+            ]);
+
+        // Counts hanya menghitung kelas A
+        $response->assertJson([
+            'counts' => [
+                'all'      => 4,
+                'pending'  => 1,
+                'verified' => 3,
+                'rejected' => 0,
+            ],
+        ]);
+    }
+
+    public function test_preview_counts_are_zero_when_class_empty()
+    {
+        $admin = $this->createAdmin();
+        $class = ClassRoom::factory()->create();
+
+        $response = $this->actingAs($admin)
+            ->postJson(route('admin.voters.export.preview'), [
+                'class_id' => $class->id,
+                'status'   => 'all',
+            ]);
+
+        $response->assertJson([
+            'count'  => 0,
+            'counts' => [
+                'all'      => 0,
+                'pending'  => 0,
+                'verified' => 0,
+                'rejected' => 0,
+            ],
+        ]);
+    }
+
+    public function test_preview_counts_only_include_voter_role()
+    {
+        $admin = $this->createAdmin();
+        $class = ClassRoom::factory()->create();
+
+        // 3 voter
+        User::factory()->count(3)->voter()->create([
+            'role'     => UserRole::VOTER,
+            'class_id' => $class->id,
+        ]);
+
+        // 1 operator (harus di-exclude)
+        $this->createOperator();
+
+        $response = $this->actingAs($admin)
+            ->postJson(route('admin.voters.export.preview'), [
+                'class_id' => $class->id,
+                'status'   => 'all',
+            ]);
+
+        $response->assertJson([
+            'counts' => [
+                'all' => 3,
+            ],
+        ]);
     }
 
     // ==========================================
@@ -338,7 +449,7 @@ class VoterExportTest extends TestCase
         ]);
 
         $oldVerifiedHash = $verified->password;
-        $oldPendingHash = $pending->password;
+        $oldPendingHash  = $pending->password;
 
         // Export hanya status pending
         $this->actingAs($admin)
@@ -362,7 +473,6 @@ class VoterExportTest extends TestCase
     {
         $admin = $this->createAdmin();
 
-        // Tidak ada voter
         $response = $this->actingAs($admin)
             ->post(route('admin.voters.export.download'), [
                 'status' => 'all',
@@ -375,7 +485,6 @@ class VoterExportTest extends TestCase
     {
         $admin = $this->createAdmin();
 
-        // Bikin voter verified
         User::factory()->count(3)->voter()->create([
             'role'   => UserRole::VOTER,
             'status' => VoterStatus::VERIFIED,
@@ -427,10 +536,7 @@ class VoterExportTest extends TestCase
     {
         $admin = $this->createAdmin();
 
-        // Bikin voter
         User::factory()->count(2)->voter()->create(['role' => UserRole::VOTER]);
-
-        // Bikin operator (tidak boleh ke-export)
         $this->createOperator();
 
         $response = $this->actingAs($admin)
@@ -438,7 +544,6 @@ class VoterExportTest extends TestCase
                 'status' => 'all',
             ]);
 
-        // Hanya 2 voter
         $response->assertJson(['count' => 2]);
     }
 
