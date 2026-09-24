@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Cache;
 
 class Election extends Model
 {
@@ -221,8 +222,8 @@ class Election extends Model
 
         $this->update(['status' => ElectionStatus::ACTIVE]);
 
-        \Illuminate\Support\Facades\Cache::forget('home.active_election');
-        \Illuminate\Support\Facades\Cache::forget('admin.live_stats');
+        Cache::forget('home.active_election');
+        Cache::forget('admin.live_stats');
 
         return true;
     }
@@ -245,8 +246,8 @@ class Election extends Model
 
         $this->update(['status' => ElectionStatus::CLOSED]);
 
-        \Illuminate\Support\Facades\Cache::forget('home.active_election');
-        \Illuminate\Support\Facades\Cache::forget('admin.live_stats');
+        Cache::forget('home.active_election');
+        Cache::forget('admin.live_stats');
 
         return true;
     }

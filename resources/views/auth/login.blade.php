@@ -92,6 +92,13 @@
 
             </form>
 
+            {{-- Info --}}
+            <div class="login-divider">Info Peserta</div>
+
+            <p class="text-center text-muted mb-4" style="font-size: 0.8rem;">
+                Pastikan akun Anda sudah terdaftar dan terverifikasi sebelum login.
+            </p>
+
             {{-- Footer --}}
             <p class="login-footer-text">
                 Belum punya akun? <a href="{{ route('register') }}">Daftar Sekarang</a>
