@@ -269,9 +269,7 @@ Route::middleware('auth')->group(function () {
                 Route::get('/status', [VotingDeviceController::class, 'status'])
                     ->middleware('throttle:120,1')
                     ->name('status');
-                Route::post('/submit', [VotingDeviceController::class, 'submit'])
-                    ->middleware('throttle:10,1')
-                    ->name('submit');
+                Route::post('/submit', [VotingDeviceController::class, 'submit'])->name('submit');
                 Route::post('/reset', [VotingDeviceController::class, 'reset'])->name('reset');
                 Route::post('/close', [VotingDeviceController::class, 'close'])->name('close');
                 Route::post('/reopen', [VotingDeviceController::class, 'reopen'])->name('reopen');
