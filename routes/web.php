@@ -60,12 +60,10 @@ use App\Http\Controllers\Voter\ScanController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// ✅ Rate limit cek-status: 10x/menit per IP (cegah enumeration NIS)
+// Cek status — rate limit DIHAPUS sementara
 Route::prefix('cek-status')->name('cek-status.')->group(function () {
     Route::get('/', [CheckStatusController::class, 'index'])->name('index');
-    Route::post('/', [CheckStatusController::class, 'check'])
-        ->middleware('throttle:10,1')
-        ->name('check');
+    Route::post('/', [CheckStatusController::class, 'check'])->name('check');
 });
 
 // Hasil publik
@@ -84,16 +82,14 @@ Route::get('/register/success', [RegisterController::class, 'success'])
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    // ✅ Rate limit register: 3x/jam per IP (cegah spam akun)
+    // Register — rate limit DIHAPUS sementara
     Route::get('/register', [RegisterController::class, 'show'])->name('register');
     Route::post('/register', [RegisterController::class, 'store'])
-        ->middleware('throttle:3,60')
         ->name('register.attempt');
 
-    // ✅ Rate limit login: 5x/menit per IP (cegah brute force)
+    // Login — rate limit DIHAPUS sementara
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'store'])
-        ->middleware('throttle:5,1')
         ->name('login.attempt');
 });
 
@@ -142,7 +138,6 @@ Route::middleware('auth')->group(function () {
             });
 
             // ==== Voters ====
-            // Import (harus sebelum resource voters/{voter})
             Route::prefix('voters/import')->name('voters.import.')->group(function () {
                 Route::get('/', [VoterImportController::class, 'index'])->name('index');
                 Route::get('/template', [VoterImportController::class, 'downloadTemplate'])->name('template');
@@ -156,7 +151,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/voters/create', [VoterController::class, 'create'])->name('voters.create');
             Route::post('/voters', [VoterController::class, 'store'])->name('voters.store');
 
-            // Bulk actions (statis, sebelum {voter})
+            // Bulk actions
             Route::post('/voters/bulk-approve', [VoterController::class, 'bulkApprove'])->name('voters.bulk-approve');
             Route::post('/voters/bulk-reject', [VoterController::class, 'bulkReject'])->name('voters.bulk-reject');
 
@@ -173,7 +168,6 @@ Route::middleware('auth')->group(function () {
             Route::post('elections/{election}/close', [ElectionController::class, 'close'])->name('elections.close');
             Route::post('elections/{election}/publish', [ElectionController::class, 'publish'])->name('elections.publish');
 
-            // Hasil & Export (taruh sebelum resource elections)
             Route::get('elections/{election}/hasil', [ResultController::class, 'show'])->name('elections.hasil');
             Route::get('elections/{election}/export-pdf', [ResultController::class, 'exportPdf'])->name('elections.export-pdf');
             Route::get('elections/{election}/export-excel', [ResultController::class, 'exportExcel'])->name('elections.export-excel');
@@ -234,8 +228,6 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // SCAN dari HP siswa — voter only
     // ==========================================
-    // ✅ Token 12-char random = 4.7 quadrillion kombinasi
-    //    Brute force tidak praktis → tidak perlu rate limit
     Route::middleware('role:voter')
         ->prefix('scan')
         ->name('scan.')
@@ -249,26 +241,22 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     Route::middleware('role:operator,admin')->group(function () {
 
-        // Device Check-in
+        // Device Check-in — rate limit DIHAPUS sementara
         Route::prefix('device/checkin')
             ->name('device.checkin.')
             ->group(function () {
                 Route::get('/', [CheckinDeviceController::class, 'index'])->name('index');
-                Route::get('/status', [CheckinDeviceController::class, 'status'])
-                    ->middleware('throttle:120,1')
-                    ->name('status');
+                Route::get('/status', [CheckinDeviceController::class, 'status'])->name('status');
                 Route::post('/close', [CheckinDeviceController::class, 'close'])->name('close');
                 Route::post('/reopen', [CheckinDeviceController::class, 'reopen'])->name('reopen');
             });
 
-        // Device Voting
+        // Device Voting — rate limit DIHAPUS sementara
         Route::prefix('device/voting')
             ->name('device.voting.')
             ->group(function () {
                 Route::get('/', [VotingDeviceController::class, 'index'])->name('index');
-                Route::get('/status', [VotingDeviceController::class, 'status'])
-                    ->middleware('throttle:120,1')
-                    ->name('status');
+                Route::get('/status', [VotingDeviceController::class, 'status'])->name('status');
                 Route::post('/submit', [VotingDeviceController::class, 'submit'])->name('submit');
                 Route::post('/reset', [VotingDeviceController::class, 'reset'])->name('reset');
                 Route::post('/close', [VotingDeviceController::class, 'close'])->name('close');
