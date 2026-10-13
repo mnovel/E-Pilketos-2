@@ -108,6 +108,7 @@ class ElectionSessionController extends Controller
         }
 
         $usedClassIds = ElectionSession::where('election_id', $election->id)
+            ->whereNotNull('class_id')
             ->pluck('class_id')
             ->toArray();
 
