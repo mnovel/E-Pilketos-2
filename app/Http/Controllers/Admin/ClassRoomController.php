@@ -183,6 +183,19 @@ class ClassRoomController extends Controller
      */
     public function destroy(ClassRoom $class): RedirectResponse
     {
+
+        // ✅ Cek: kelas masih punya sesi pemilihan?
+        $sessionCount = $class->sessions()->count();
+
+        if ($sessionCount > 0) {
+            return back()->with(
+                'error',
+                "Tidak bisa hapus kelas \"{$class->name}\". "
+                    . "Masih ada {$sessionCount} sesi pemilihan terkait kelas ini. "
+                    . "Hapus sesi terlebih dahulu, atau nonaktifkan kelas ini saja."
+            );
+        }
+        
         // Cek: kelas punya user aktif?
         $userCount = User::where('class_id', $class->id)->count();
 
